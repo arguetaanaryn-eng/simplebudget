@@ -2503,7 +2503,7 @@ window.__commitAndRerender = function(){
 
 
 // v2.23.3: single source of truth for version
-window.APP_VERSION = "v2.23.5";
+window.APP_VERSION = "v2.23.6";
 window.applyAppVersion = function(){
   try{
     document.querySelectorAll('.app-version').forEach(el=>{ el.textContent = window.APP_VERSION; });
@@ -2598,4 +2598,91 @@ document.addEventListener('DOMContentLoaded', window.applyAppVersion);
   };
   document.addEventListener('DOMContentLoaded', ()=>{ sweepKebabs(); wireDebtDeletes(); });
   document.addEventListener('change', (e)=>{ if(e.target && e.target.id==='monthSelect'){ sweepKebabs(); wireDebtDeletes(); }});
+})();
+
+
+
+// v2.23.6: Remove all kebab icons; harden debt & debt-transaction delete buttons (no ghosts/dupes)
+(function(){
+  function cur(){ const sel=document.getElementById('monthSelect'); return sel&&sel.value&&data.months?data.months[sel.value]:null; }
+
+  function cleanNodeList(root, selector){
+    root.querySelectorAll(selector).forEach(n=>n.remove());
+  }
+
+  function wireDebtDeletes(){
+    const m = cur(); if(!m) return;
+    const wrap = document.getElementById('debtCards'); if(!wrap) return;
+
+    // Remove any previously injected buttons to avoid duplicates
+    cleanNodeList(wrap, '.debt-del-btn');
+    cleanNodeList(wrap, '.txn-delete');
+
+    // Wire debt card delete buttons (one per card)
+    const cards = wrap.querySelectorAll('.card-item');
+    cards.forEach((c, idx)=>{
+      // locate header row or create one
+      let header = c.querySelector('.title-row') || c.querySelector('.card-head') || null;
+      if(!header){
+        header = document.createElement('div');
+        header.className = 'title-row';
+        c.prepend(header);
+      }
+      const btn = document.createElement('button');
+      btn.className = 'icon-btn danger debt-del-btn';
+      btn.title = 'Delete Debt';
+      btn.innerHTML = '<span class="ic-trash" style="width:16px;height:16px;"></span>';
+      btn.addEventListener('click', ()=>{
+        if(!m.debts || !m.debts[idx]) return;
+        const name = m.debts[idx].name || 'this debt';
+        if(confirm(`Delete "${name}"?`)){
+          m.debts.splice(idx,1);
+          try{ saveData(); }catch(e){}
+          try{ if(window.renderAll) window.renderAll(); }catch(e){}
+        }
+      });
+      header.appendChild(btn);
+      header.style.display = 'flex';
+      header.style.justifyContent = 'space-between';
+      header.style.alignItems = 'center';
+    });
+
+    // Wire debt transactions delete (if list exists)
+    const txnLists = wrap.querySelectorAll('.debt-transactions, #debtTransactions');
+    txnLists.forEach(list=>{
+      const rows = list.querySelectorAll('.txn-row, .debt-txn-row, li, .row');
+      rows.forEach((row, ridx)=>{
+        // avoid duplicate add
+        if(row.querySelector('.txn-delete')) return;
+        const del = document.createElement('button');
+        del.type = 'button';
+        del.className = 'txn-delete';
+        del.textContent = 'Delete';
+        del.style.marginLeft = '8px';
+        del.addEventListener('click', ()=>{
+          const arr = m.debtTransactions || m.debtTxns || [];
+          if(arr[ridx]){
+            if(confirm('Delete this debt transaction?')){
+              arr.splice(ridx,1);
+              if(m.debtTransactions) m.debtTransactions = arr;
+              else if(m.debtTxns) m.debtTxns = arr;
+              try{ saveData(); }catch(e){}
+              try{ if(window.renderAll) window.renderAll(); }catch(e){}
+            }
+          }
+        });
+        row.appendChild(del);
+      });
+    });
+  }
+
+  // Hook into global render
+  const _old = window.renderAll;
+  window.renderAll = function(){
+    if(typeof _old === 'function') _old();
+    wireDebtDeletes();
+    if(window.__renderSummary) window.__renderSummary();
+  };
+  document.addEventListener('DOMContentLoaded', wireDebtDeletes);
+  document.addEventListener('change', (e)=>{ if(e.target && e.target.id==='monthSelect') wireDebtDeletes(); });
 })();

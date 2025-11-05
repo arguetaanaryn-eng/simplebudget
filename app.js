@@ -1400,3 +1400,196 @@ document.addEventListener('DOMContentLoaded', ()=>{
   });
   window.addEventListener('resize', renderMobileCards);
 })();
+
+
+// v2.21: Debt balance editable + Income cards + editable Transactions cards
+(function(){
+  function fmt(n){ if(n===undefined||n===null||n==='') return '0.00'; var v=Number(n)||0; return v.toLocaleString(undefined,{minimumFractionDigits:2, maximumFractionDigits:2}); }
+  function currentMonth(){
+    const sel = document.getElementById('monthSelect');
+    return sel && sel.value && data.months ? data.months[sel.value] : null;
+  }
+  function createEditableValue(initial, type, onCommit, placeholder){
+    const wrap = document.createElement('span');
+    wrap.className = 'value editable';
+    const input = document.createElement('input');
+    input.type = (type==='date') ? 'text' : 'number';
+    if(type==='date'){ input.placeholder = placeholder || 'MMM D, YYYY'; }
+    input.value = (initial ?? '') === '' ? '' : initial;
+    if(type!=='date'){ input.setAttribute('inputmode','decimal'); input.setAttribute('pattern','[0-9]*'); }
+    function commit(){ onCommit(input.value); }
+    input.addEventListener('blur', commit);
+    input.addEventListener('keydown', (e)=>{ if(e.key==='Enter'){ input.blur(); } });
+    wrap.appendChild(input);
+    return wrap;
+  }
+
+  // --- Income cards (match Expenses layout, no Date) ---
+  function renderIncomeCards(){
+    const cont = document.getElementById('incomeCards');
+    if(!cont) return;
+    cont.innerHTML = '';
+    const m = currentMonth();
+    if(!m || !Array.isArray(m.income)) return;
+    const group = document.createElement('div');
+    group.className = 'card-group';
+    const gt = document.createElement('div'); gt.className='group-title'; gt.textContent = 'Income';
+    group.appendChild(gt);
+    m.income.forEach((row,idx)=>{
+      const c = document.createElement('div'); c.className='card-item editable';
+      const title = document.createElement('div'); title.className='title'; title.textContent = row.name || 'Income';
+      c.appendChild(title);
+      // Planned
+      const r1 = document.createElement('div'); r1.className='card-row';
+      const l1 = document.createElement('span'); l1.className='label'; l1.textContent='Planned';
+      const v1 = document.createElement('span'); v1.className='value editable'; v1.textContent='$'+fmt(row.planned);
+      v1.addEventListener('click', ()=>{
+        const rep = createEditableValue(row.planned,'number',(val)=>{ row.planned = Number(val)||0; saveData(); renderIncomeCards(); });
+        v1.replaceWith(rep.querySelector('input').parentElement); rep.querySelector('input').focus();
+      });
+      r1.appendChild(l1); r1.appendChild(v1);
+      // Actual
+      const r2 = document.createElement('div'); r2.className='card-row';
+      const l2 = document.createElement('span'); l2.className='label'; l2.textContent='Actual';
+      const v2 = document.createElement('span'); v2.className='value editable'; v2.textContent='$'+fmt(row.actual);
+      v2.addEventListener('click', ()=>{
+        const rep = createEditableValue(row.actual,'number',(val)=>{ row.actual = Number(val)||0; saveData(); renderIncomeCards(); });
+        v2.replaceWith(rep.querySelector('input').parentElement); rep.querySelector('input').focus();
+      });
+      r2.appendChild(l2); r2.appendChild(v2);
+      c.appendChild(r1); c.appendChild(r2);
+      group.appendChild(c);
+    });
+    cont.appendChild(group);
+  }
+
+  // --- Extend Debt cards: make Balance editable ---
+  function enableDebtBalanceEditing(container){
+    container.querySelectorAll('.card-item').forEach((card, idx)=>{
+      const m = currentMonth(); if(!m) return;
+      const d = m.debts[idx]; if(!d) return;
+      const rowBal = card.querySelector('.card-row'); // first row is Balance
+      if(!rowBal) return;
+      const valSpan = rowBal.querySelector('.value');
+      if(!valSpan) return;
+      // Replace with editable behavior
+      valSpan.classList.add('editable');
+      valSpan.addEventListener('click', ()=>{
+        const rep = createEditableValue(d.balance,'number',(val)=>{
+          d.balance = Number(val)||0; saveData(); renderDebtCards(); // re-render original function
+        });
+        valSpan.replaceWith(rep.querySelector('input').parentElement); rep.querySelector('input').focus();
+      });
+    });
+  }
+
+  // --- Transactions cards (editable) ---
+  function renderTransactionCards(){
+    const m = currentMonth(); if(!m) return;
+    const using = data.settings && data.settings.useTransactions;
+    const expCont = document.getElementById('expenseTxCards');
+    const incCont = document.getElementById('incomeTxCards');
+    if(!expCont || !incCont) return;
+
+    // Toggle visibility by aria-hidden (css still displays grid)
+    expCont.setAttribute('aria-hidden', using ? 'false' : 'true');
+    incCont.setAttribute('aria-hidden', using ? 'false' : 'true');
+
+    expCont.innerHTML = '';
+    incCont.innerHTML = '';
+
+    if(using){
+      // Expense transactions: expect m.transactions = [{name,date,amount,group?}]
+      if(Array.isArray(m.transactions)){
+        const g = document.createElement('div'); g.className='card-group';
+        const t = document.createElement('div'); t.className='group-title'; t.textContent='Expense Transactions';
+        g.appendChild(t);
+        m.transactions.forEach((tx, i)=>{
+          const c = document.createElement('div'); c.className='card-item editable';
+          const title = document.createElement('div'); title.className='title'; title.textContent = tx.name || 'Transaction';
+          c.appendChild(title);
+
+          // Amount
+          const r1 = document.createElement('div'); r1.className='card-row';
+          const l1 = document.createElement('span'); l1.className='label'; l1.textContent='Amount';
+          const v1 = document.createElement('span'); v1.className='value editable'; v1.textContent='$'+fmt(tx.amount);
+          v1.addEventListener('click', ()=>{
+            const rep = createEditableValue(tx.amount,'number',(val)=>{ tx.amount = Number(val)||0; saveData(); renderTransactionCards(); });
+            v1.replaceWith(rep.querySelector('input').parentElement); rep.querySelector('input').focus();
+          });
+          r1.appendChild(l1); r1.appendChild(v1);
+
+          // Date
+          const r2 = document.createElement('div'); r2.className='card-row';
+          const l2 = document.createElement('span'); l2.className='label'; l2.textContent='Date';
+          const v2 = document.createElement('span'); v2.className='value editable'; v2.textContent = tx.date || '—';
+          v2.addEventListener('click', ()=>{
+            const rep = createEditableValue(tx.date,'date',(val)=>{ tx.date = val; saveData(); renderTransactionCards(); }, 'Nov 4, 2025');
+            v2.replaceWith(rep.querySelector('input').parentElement); rep.querySelector('input').focus();
+          });
+          r2.appendChild(l2); r2.appendChild(v2);
+
+          // Optional group/category
+          const r3 = document.createElement('div'); r3.className='card-row';
+          const l3 = document.createElement('span'); l3.className='label'; l3.textContent='Category';
+          const v3 = document.createElement('span'); v3.className='value editable'; v3.textContent = tx.group || (tx.category||'—');
+          v3.addEventListener('click', ()=>{
+            const rep = createEditableValue(tx.group || tx.category,'date',(val)=>{ if('group' in tx) tx.group = val; else tx.category = val; saveData(); renderTransactionCards(); }, 'Housing / Fuel');
+            v3.replaceWith(rep.querySelector('input').parentElement); rep.querySelector('input').focus();
+          });
+          r3.appendChild(l3); r3.appendChild(v3);
+
+          c.appendChild(r1); c.appendChild(r2); c.appendChild(r3);
+          g.appendChild(c);
+        });
+        expCont.appendChild(g);
+      }
+      // Income transactions: expect m.incomeTransactions = [{name,date,amount}]
+      if(Array.isArray(m.incomeTransactions)){
+        const g2 = document.createElement('div'); g2.className='card-group';
+        const t2 = document.createElement('div'); t2.className='group-title'; t2.textContent='Income Transactions';
+        g2.appendChild(t2);
+        m.incomeTransactions.forEach((tx, i)=>{
+          const c = document.createElement('div'); c.className='card-item editable';
+          const title = document.createElement('div'); title.className='title'; title.textContent = tx.name || 'Income';
+          c.appendChild(title);
+
+          // Amount
+          const r1 = document.createElement('div'); r1.className='card-row';
+          const l1 = document.createElement('span'); l1.className='label'; l1.textContent='Amount';
+          const v1 = document.createElement('span'); v1.className='value editable'; v1.textContent='$'+fmt(tx.amount);
+          v1.addEventListener('click', ()=>{
+            const rep = createEditableValue(tx.amount,'number',(val)=>{ tx.amount = Number(val)||0; saveData(); renderTransactionCards(); });
+            v1.replaceWith(rep.querySelector('input').parentElement); rep.querySelector('input').focus();
+          });
+          r1.appendChild(l1); r1.appendChild(v1);
+
+          // Date (only if present/wanted)
+          const r2 = document.createElement('div'); r2.className='card-row';
+          const l2 = document.createElement('span'); l2.className='label'; l2.textContent='Date';
+          const v2 = document.createElement('span'); v2.className='value editable'; v2.textContent = tx.date || '—';
+          v2.addEventListener('click', ()=>{
+            const rep = createEditableValue(tx.date,'date',(val)=>{ tx.date = val; saveData(); renderTransactionCards(); }, 'Nov 1, 2025');
+            v2.replaceWith(rep.querySelector('input').parentElement); rep.querySelector('input').focus();
+          });
+          r2.appendChild(l2); r2.appendChild(v2);
+
+          c.appendChild(r1); c.appendChild(r2);
+          g2.appendChild(c);
+        });
+        incCont.appendChild(g2);
+      }
+    }
+  }
+
+  // Orig renderers exist from v2.20: renderExpenseCards, renderDebtCards
+  // We wrap / extend calls
+  const _renderAll = window.renderAll;
+  window.renderAll = function(){ if(typeof _renderAll==='function') _renderAll(); renderIncomeCards(); renderTransactionCards(); setTimeout(()=>{
+    const dc = document.getElementById('debtCards'); if(dc) enableDebtBalanceEditing(dc);
+  },0); };
+
+  document.addEventListener('DOMContentLoaded', ()=>{ renderIncomeCards(); renderTransactionCards(); const dc = document.getElementById('debtCards'); if(dc) enableDebtBalanceEditing(dc); });
+  document.addEventListener('change', function(e){ if(e.target && e.target.id==='monthSelect'){ renderIncomeCards(); renderTransactionCards(); const dc = document.getElementById('debtCards'); if(dc) enableDebtBalanceEditing(dc); } });
+  window.addEventListener('resize', function(){ renderIncomeCards(); renderTransactionCards(); });
+})();

@@ -339,3 +339,14 @@ h1,h2,h3{ color: var(--ink); letter-spacing: -0.01em; }
 @media (max-width: 700px){
   /* keep cards visible; tables hidden already in 2.18 */
 }
+
+
+/* v2.21 additions: income cards + transaction cards */
+.tx-cards .card-item{ border-style:dashed; }
+.tx-cards .card-item .title{ font-weight:600; font-size:15px; color: var(--muted); }
+.tx-header{ font-size:13px; color:var(--muted); margin-top:6px; margin-bottom:-4px; }
+@media (max-width: 700px){
+  #incomeTable{ display:none !important; }
+  #incomeCards, #incomeTxCards{ display:grid; }
+  /* Only show tx cards when transactions mode is on; JS toggles aria-hidden */
+}

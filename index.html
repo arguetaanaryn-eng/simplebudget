@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Simple Budget v2.20 (Pro + Editable Cards)</title>
+  <title>Simple Budget v2.21 (Pro + Editable+)</title>
   <link rel="stylesheet" href="style.css">
 
   <link rel="manifest" href="manifest.json">
@@ -17,7 +17,7 @@
   <header class="app-header">
     <div class="brand">
       <div class="logo">SB</div>
-      <h1>Simple Budget</h1><span class="tag">v2.20</span>
+      <h1>Simple Budget</h1><span class="tag">v2.21</span>
     </div>
     <div class="actions-toolbar">
   <div class="actions-primary">
@@ -77,7 +77,9 @@
           <h2 id="sec-income">Income</h2>
         </div>
         <div class="table-wrap">
-          <table id="incomeTable" class="table">
+          <div id="incomeCards" class="cards-wrap" aria-hidden="true"></div>
+        <div id="incomeTxCards" class="cards-wrap tx-cards" aria-hidden="true"></div>
+        <table id="incomeTable" class="table">
             <thead><tr><th>Name</th><th>Planned</th><th>Actual</th><th></th></tr></thead>
             <tbody></tbody>
             <tfoot><tr class="totals"><td>Totals</td><td id="totIncomePlanned">0</td><td id="totIncomeActual">0</td><td></td></tr></tfoot>
@@ -118,6 +120,7 @@
         </div>
 
         <div id="expenseCards" class="cards-wrap" aria-hidden="true"></div>
+      <div id="expenseTxCards" class="cards-wrap tx-cards" aria-hidden="true"></div>
       <div id="expenseGroups" class="group-list"></div>
 
         <div class="table-wrap">

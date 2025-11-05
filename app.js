@@ -1056,3 +1056,50 @@ document.addEventListener("DOMContentLoaded", function(){
     };
   };
 });
+
+
+// v2.17.2: Backup Now button (timestamped JSON download)
+(function(){
+  function tsName(){
+    const d = new Date();
+    const pad = (n)=>String(n).padStart(2,"0");
+    return `simple-budget-backup-${d.getFullYear()}${pad(d.getMonth()+1)}${pad(d.getDate())}-${pad(d.getHours())}${pad(d.getMinutes())}${pad(d.getSeconds())}.json`;
+  }
+  document.addEventListener("DOMContentLoaded", function(){
+    const btn = document.getElementById("backupBtn");
+    if(!btn) return;
+    btn.addEventListener("click", function(){
+      try{
+        const blob = new Blob([JSON.stringify(data,null,2)], {type:"application/json"});
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url; a.download = tsName();
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      } catch (e){
+        alert("Backup failed: " + (e && e.message ? e.message : e));
+      }
+    });
+  });
+})();
+
+
+// v2.17.2 mobile enhancements (numeric keypad & auto-compact)
+(function(){
+  function isNarrow(){ return window.innerWidth <= 680; }
+  function tweakNumberInputs(){
+    document.querySelectorAll('input[type="number"]').forEach(inp=>{
+      inp.setAttribute('inputmode','decimal');
+      inp.setAttribute('pattern','[0-9]*');
+    });
+  }
+  window.addEventListener('resize', ()=>{
+    document.body.classList.toggle('auto-compact', isNarrow());
+  });
+  document.addEventListener('DOMContentLoaded', ()=>{
+    document.body.classList.toggle('auto-compact', isNarrow());
+    tweakNumberInputs();
+  });
+})();

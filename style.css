@@ -179,3 +179,57 @@ body.compact .metric .label, body.auto-compact .metric .label { font-size: 11px;
 .modal-head { padding: 14px 16px; border-bottom: 1px solid var(--line); }
 .modal-body { padding: 14px 16px; display: grid; gap: 10px; }
 .modal-foot { padding: 12px 16px; border-top: 1px solid var(--line); display: flex; justify-content: flex-end; gap: 8px; }
+
+
+/* v2.17.2 Mobile tweaks */
+:root { --mobile-pad: 10px; }
+
+.bottom-nav{
+  position: fixed; bottom: 0; left: 0; right: 0;
+  display: grid; grid-template-columns: repeat(4,1fr);
+  background: var(--card); border-top: 1px solid var(--line);
+  padding: 6px; gap: 6px; z-index: 9999;
+}
+.bottom-nav button{
+  padding: 10px 6px; border-radius: 10px;
+  border: 1px solid var(--line); background: #fff;
+  font-size: 14px;
+}
+
+@media (max-width: 680px){
+  body{ padding-bottom: 62px; }
+
+  .app-header .actions .btn, .app-header .actions .import-label{
+    padding: 6px 8px; font-size: 12px;
+  }
+
+  .summary{ grid-template-columns: 1fr 1fr; gap: 8px; }
+  .summary .card.metric .value{ font-size: 16px; }
+
+  .table th, .table td{ padding: 6px 6px; }
+  .row-add .input{ padding: 8px; }
+  .input{ font-size: 14px; }
+
+  /* Expenses: hide Remaining column */
+  #expenseGroups table thead th:nth-child(5),
+  #expenseGroups table tbody td:nth-child(5),
+  #expenseGroups table tfoot .totals td:nth-child(5){ display: none; }
+
+  /* Debts: hide APR, Auto, Interest */
+  #debtTable thead th:nth-child(3),
+  #debtTable thead th:nth-child(4),
+  #debtTable thead th:nth-child(5),
+  #debtTable tbody td:nth-child(3),
+  #debtTable tbody td:nth-child(4),
+  #debtTable tbody td:nth-child(5),
+  #debtTable tfoot td:nth-child(3){ display:none; }
+
+  #incomeTable .input{ padding: 6px 8px; }
+}
+
+@media (max-width: 480px){
+  .btn{ padding: 10px 12px; }
+  .switch span{ font-size: 12px; }
+}
+
+.table-wrap{ overflow-x: auto; -webkit-overflow-scrolling: touch; }

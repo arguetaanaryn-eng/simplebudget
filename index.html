@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Simple Budget v2.16.1 (Offline)</title>
+  <title>Simple Budget v2.17.2 (Mobile PWA)</title>
   <link rel="stylesheet" href="style.css">
 
   <link rel="manifest" href="manifest.json">
@@ -17,13 +17,14 @@
   <header class="app-header">
     <div class="brand">
       <div class="logo">SB</div>
-      <h1>Simple Budget</h1><span class="tag">v2.16.1</span>
+      <h1>Simple Budget</h1><span class="tag">v2.17.2</span>
     </div>
     <div class="actions">
       <button id="newMonthBtn" class="btn" title="Creates a new month by copying the last month (dates & planned).">New Month (copy prev)</button>
       <button id="copyPrevBtn" class="btn" title="Copies the previous month's data into the currently selected month.">Copy Prev → Current</button>
       <button id="newTemplateBtn" class="btn btn-ghost" title="Create a new blank month with standard categories (no dates)">New Template</button>
       <button id="exportBtn" class="btn btn-ghost">Export</button>
+      <button id="backupBtn" class="btn">Backup Now</button>
       <label class="import-label btn btn-ghost">
         Import <input type="file" id="importFile" accept=".json" />
       </label>
@@ -71,7 +72,7 @@
     <section class="grid">
       <div class="panel">
         <div class="panel-head">
-          <h2>Income</h2>
+          <h2 id="sec-income">Income</h2>
         </div>
         <div class="table-wrap">
           <table id="incomeTable" class="table">
@@ -106,7 +107,7 @@
 
       <div class="panel">
         <div class="panel-head">
-          <h2>Expenses</h2>
+          <h2 id="sec-expenses">Expenses</h2>
           <div class="muted">Headers & subcategories with subtotals</div>
         </div>
         <div class="row-add">
@@ -145,7 +146,7 @@
 
       <div class="panel">
         <div class="panel-head">
-          <h2>Debts</h2>
+          <h2 id="sec-debts">Debts</h2>
         </div>
         <div class="table-wrap">
           <table id="debtTable" class="table">
@@ -212,6 +213,30 @@ if ('serviceWorker' in navigator) {
   });
 }
 </script>
+
+
+  <nav class="bottom-nav" id="bottomNav">
+    <button data-target=".summary">Summary</button>
+    <button data-target="#sec-income">Income</button>
+    <button data-target="#sec-expenses">Expenses</button>
+    <button data-target="#sec-debts">Debts</button>
+  </nav>
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', function(){ navigator.serviceWorker.register('sw.js'); });
+    }
+    (function(){
+      const nav = document.getElementById('bottomNav');
+      if(nav){
+        nav.addEventListener('click', function(e){
+          const btn = e.target.closest('button'); if(!btn) return;
+          const sel = btn.getAttribute('data-target'); if(!sel) return;
+          const el = document.querySelector(sel);
+          if(el){ el.scrollIntoView({behavior:'smooth', block:'start'}); }
+        });
+      }
+    })();
+  </script>
 
 </body>
 </html>

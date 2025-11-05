@@ -2503,7 +2503,7 @@ window.__commitAndRerender = function(){
 
 
 // v2.23.3: single source of truth for version
-window.APP_VERSION = "v2.23.6";
+window.APP_VERSION = "v2.23.8";
 window.applyAppVersion = function(){
   try{
     document.querySelectorAll('.app-version').forEach(el=>{ el.textContent = window.APP_VERSION; });
@@ -2685,4 +2685,212 @@ document.addEventListener('DOMContentLoaded', window.applyAppVersion);
   };
   document.addEventListener('DOMContentLoaded', wireDebtDeletes);
   document.addEventListener('change', (e)=>{ if(e.target && e.target.id==='monthSelect') wireDebtDeletes(); });
+})();
+
+
+
+// v2.23.7: Safari-proof cleanup + delegated deletes (no ghosts)
+(function(){
+  function cur(){ const sel=document.getElementById('monthSelect'); return sel&&sel.value&&data.months?data.months[sel.value]:null; }
+
+  function sweepDots(root=document){
+    // Hide any three-dot controls regardless of structure (Safari sometimes re-injects them)
+    root.querySelectorAll('button, .icon-btn').forEach(el=>{
+      const t = (el.textContent || '').trim();
+      if(t === '...' || t === '…'){
+        el.style.display = 'none';
+        el.classList.add('__hiddenKebab');
+      }
+    });
+    // Hide empty kebab wrappers
+    root.querySelectorAll('.kebab').forEach(k=>{
+      if(!k.querySelector('button')) k.style.display='none';
+    });
+  }
+
+  function ensureOneDebtTrash(){
+    const wrap = document.getElementById('debtCards'); if(!wrap) return;
+    wrap.querySelectorAll('.card-item').forEach(c=>{
+      const buttons = c.querySelectorAll('.debt-del-btn');
+      if(buttons.length > 1){
+        // Keep first, remove the rest
+        buttons.forEach((b,i)=>{ if(i>0) b.remove(); });
+      }
+    });
+  }
+
+  // Delegated debt transaction delete (stable on mobile + no duplicates)
+  function bindDelegatedTxnDelete(){
+    const wrap = document.getElementById('debtCards'); if(!wrap) return;
+    if (wrap.__txnDelegated) return;
+    wrap.__txnDelegated = true;
+    wrap.addEventListener('click', function(e){
+      const del = e.target.closest && e.target.closest('.txn-delete');
+      if(!del) return;
+      const m = (function(){ const sel=document.getElementById('monthSelect'); return sel&&sel.value&&data.months?data.months[sel.value]:null; })();
+      if(!m) return;
+      // Find row index by position among siblings
+      const row = del.closest('.txn-row, .debt-txn-row, li, .row'); if(!row) return;
+      const list = row.parentElement;
+      const rows = Array.from(list.querySelectorAll('.txn-row, .debt-txn-row, li, .row'));
+      const idx = rows.indexOf(row);
+      const arr = m.debtTransactions || m.debtTxns || [];
+      if(idx>=0 && arr[idx]){
+        if(confirm('Delete this debt transaction?')){
+          arr.splice(idx,1);
+          if(m.debtTransactions) m.debtTransactions = arr; else if(m.debtTxns) m.debtTxns = arr;
+          try{ saveData(); }catch(e){}
+          try{ if(window.renderAll) window.renderAll(); }catch(e){}
+        }
+      }
+    }, true);
+  }
+
+  function wireDebtTrashOnce(){
+    const m = cur(); if(!m) return;
+    const wrap = document.getElementById('debtCards'); if(!wrap) return;
+    // Remove existing duplicates first
+    wrap.querySelectorAll('.debt-del-btn').forEach((b,i)=>{ if(i>0) b.remove(); });
+    // If none, add one per card
+    const cards = wrap.querySelectorAll('.card-item');
+    cards.forEach((c, idx)=>{
+      if(c.querySelector('.debt-del-btn')) return;
+      let header = c.querySelector('.title-row') || c.querySelector('.card-head') || null;
+      if(!header){ header = document.createElement('div'); header.className='title-row'; c.prepend(header); }
+      const btn = document.createElement('button');
+      btn.className = 'icon-btn danger debt-del-btn';
+      btn.title = 'Delete Debt';
+      btn.innerHTML = '<span class="ic-trash" style="width:16px;height:16px;"></span>';
+      btn.addEventListener('click', ()=>{
+        if(!m.debts || !m.debts[idx]) return;
+        const name = m.debts[idx].name || 'this debt';
+        if(confirm(`Delete "${name}"?`)){
+          m.debts.splice(idx,1);
+          try{ saveData(); }catch(e){}
+          try{ if(window.renderAll) window.renderAll(); }catch(e){}
+        }
+      });
+      header.appendChild(btn);
+      header.style.display='flex'; header.style.justifyContent='space-between'; header.style.alignItems='center';
+    });
+  }
+
+  function sweepAll(){
+    sweepDots();
+    ensureOneDebtTrash();
+    bindDelegatedTxnDelete();
+  }
+
+  // Run on render and also on DOM mutations (Safari)
+  const _old = window.renderAll;
+  window.renderAll = function(){
+    if(typeof _old === 'function') _old();
+    sweepAll();
+    if(window.__renderSummary) window.__renderSummary();
+  };
+  document.addEventListener('DOMContentLoaded', sweepAll);
+  document.addEventListener('change', (e)=>{ if(e.target && e.target.id==='monthSelect') sweepAll(); });
+
+  // Mutation observer to catch virtualized lists / Safari repaints
+  const mo = new MutationObserver(()=>sweepAll());
+  mo.observe(document.documentElement, { subtree:true, childList:true });
+})();
+
+
+
+// v2.23.8: Final ellipsis purge + stable deletes
+(function(){
+  function cur(){ const sel=document.getElementById('monthSelect'); return sel&&sel.value&&data.months?data.months[sel.value]:null; }
+
+  // Remove any element that visually shows just "..." or "…"
+  function purgeEllipsis(root=document){
+    root.querySelectorAll('*').forEach(el=>{
+      const t = (el.textContent||'').trim();
+      if(t==='...' || t==='…'){
+        el.remove();
+      }
+    });
+    root.querySelectorAll('.kebab, .ellipsis, .ellipsis-btn, .more-btn').forEach(el=>el.remove());
+  }
+
+  // Ensure exactly one debt delete per card, with stable id to prevent duplicates
+  function wireDebtDeletes(){
+    const m = cur(); if(!m) return;
+    const wrap = document.getElementById('debtCards'); if(!wrap) return;
+
+    // First purge any leftover ellipsis
+    purgeEllipsis(wrap);
+
+    const cards = wrap.querySelectorAll('.card-item');
+    cards.forEach((c, idx)=>{
+      // Use a stable id on the header delete for this index
+      const id = `debt-del-${idx}`;
+      const existing = c.querySelector('#'+id);
+      // Remove any extra accidental buttons
+      c.querySelectorAll('.debt-del-btn').forEach(btn=>{ if(btn.id && btn.id!==id) btn.remove(); });
+
+      if(!existing){
+        let header = c.querySelector('.title-row') || c.querySelector('.card-head') || null;
+        if(!header){ header = document.createElement('div'); header.className='title-row'; c.prepend(header); }
+        // Make right container for actions
+        let right = header.querySelector('.right');
+        if(!right){ right = document.createElement('div'); right.className='right'; header.appendChild(right); }
+
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.id = id;
+        btn.className = 'icon-btn danger debt-del-btn';
+        btn.title = 'Delete Debt';
+        btn.innerHTML = '<span class="ic-trash" style="width:16px;height:16px;"></span>';
+        btn.addEventListener('click', ()=>{
+          if(!m.debts || !m.debts[idx]) return;
+          const name = m.debts[idx].name || 'this debt';
+          if(confirm(`Delete "${name}"?`)){
+            m.debts.splice(idx,1);
+            try{ saveData(); }catch(e){}
+            try{ if(window.renderAll) window.renderAll(); }catch(e){}
+          }
+        });
+        right.appendChild(btn);
+      }
+    });
+  }
+
+  // Delegated delete for debt transactions (no per-row injections)
+  function bindTxnDelegation(){
+    const wrap = document.getElementById('debtCards'); if(!wrap) return;
+    if(wrap.__txnDelBound) return;
+    wrap.__txnDelBound = true;
+    wrap.addEventListener('click', function(e){
+      const del = e.target.closest && e.target.closest('.txn-delete');
+      if(!del) return;
+      const m = (function(){ const sel=document.getElementById('monthSelect'); return sel&&sel.value&&data.months?data.months[sel.value]:null; })();
+      if(!m) return;
+      const row = del.closest('.txn-row, .debt-txn-row, li, .row'); if(!row) return;
+      const list = row.parentElement;
+      const rows = Array.from(list.querySelectorAll('.txn-row, .debt-txn-row, li, .row'));
+      const idx = rows.indexOf(row);
+      const arr = m.debtTransactions || m.debtTxns || [];
+      if(idx>=0 && arr[idx]){
+        if(confirm('Delete this debt transaction?')){
+          arr.splice(idx,1);
+          if(m.debtTransactions) m.debtTransactions = arr;
+          else if(m.debtTxns) m.debtTxns = arr;
+          try{ saveData(); }catch(e){}
+          try{ if(window.renderAll) window.renderAll(); }catch(e){}
+        }
+      }
+    }, true);
+  }
+
+  const _old = window.renderAll;
+  window.renderAll = function(){
+    if(typeof _old==='function') _old();
+    purgeEllipsis();
+    wireDebtDeletes();
+    bindTxnDelegation();
+    if(window.__renderSummary) window.__renderSummary();
+  };
+  document.addEventListener('DOMContentLoaded', ()=>{ purgeEllipsis(); wireDebtDeletes(); bindTxnDelegation(); });
+  document.addEventListener('change', (e)=>{ if(e.target && e.target.id==='monthSelect'){ purgeEllipsis(); wireDebtDeletes(); }});
 })();

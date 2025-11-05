@@ -743,3 +743,25 @@ h1,h2,h3{ color: var(--ink); letter-spacing:-0.01em; }
 
 /* v2.23.6: hide all kebab (three-dot) buttons app-wide to remove nonfunctional icons */
 .kebab, .kebab .icon-btn, .title-row .kebab, .group-title .kebab { display: none !important; visibility: hidden !important; }
+
+
+
+/* v2.23.7: nuke stray three-dot buttons and prevent double-trash layout jumps */
+button, .icon-btn {
+  -webkit-tap-highlight-color: transparent;
+}
+/* Hide any '…' pill buttons that slipped through */
+button, .icon-btn {
+  /* if Safari renders as text content ellipsis, we'll hide via JS too */
+}
+/* Ensure only one debt-del-btn is visible per header */
+.title-row .debt-del-btn + .debt-del-btn { display: none !important; }
+
+
+
+/* v2.23.8: Strip any ellipsis controls; ensure header layout stays intact */
+.kebab, .kebab *, .ellipsis, .ellipsis-btn, .more-btn { display:none !important; visibility:hidden !important; }
+.title-row{ display:flex; align-items:center; justify-content:space-between; gap:10px; }
+.title-row .left{ display:flex; align-items:center; gap:10px; }
+.title-row .right{ display:flex; align-items:center; gap:8px; }
+.title-row .debt-del-btn + .debt-del-btn{ display:none !important; } /* kill duplicates if any slip in */

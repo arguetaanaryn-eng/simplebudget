@@ -2188,3 +2188,62 @@ window.__commitAndRerender = function(){
     }
   });
 })();
+
+
+
+// v2.22.7: Robust kebab menu open/close (works after re-renders)
+(function(){
+  function isMobile(){ return window.matchMedia && window.matchMedia('(max-width:700px)').matches; }
+  function ensureScrim(){
+    let s = document.querySelector('.menu-scrim');
+    if(!s){ s = document.createElement('div'); s.className='menu-scrim'; document.body.appendChild(s); }
+    return s;
+  }
+  function openMenu(btn, menu){
+    document.querySelectorAll('.kebab-menu').forEach(m=>{ m.style.display='none'; m.dataset.open='0'; m.classList.remove('mobile'); });
+    const scrim = ensureScrim();
+    if(isMobile()){
+      menu.classList.add('mobile');
+      menu.style.display='block'; menu.dataset.open='1';
+      scrim.classList.add('show');
+    }else{
+      // place near button, clamped
+      const rect = btn.getBoundingClientRect();
+      const mw = 240; const mh = Math.min(320, window.innerHeight*0.7);
+      menu.style.minWidth = mw+'px'; menu.style.maxHeight = mh+'px';
+      let left = Math.min(rect.left, window.innerWidth - mw - 8);
+      let top = rect.bottom + 8;
+      if(top + mh > window.innerHeight - 8){ top = Math.max(8, rect.top - mh - 8); }
+      left = Math.max(8, Math.min(left, window.innerWidth - mw - 8));
+      top = Math.max(8, Math.min(top, window.innerHeight - 8));
+      menu.style.left = left+'px'; menu.style.top = top+'px';
+      menu.style.display='block'; menu.dataset.open='1';
+      scrim.classList.remove('show');
+    }
+    // Close on outside click
+    const close = (ev)=>{
+      if(!menu.contains(ev.target) && ev.target!==btn){
+        menu.style.display='none'; menu.dataset.open='0'; menu.classList.remove('mobile');
+        ensureScrim().classList.remove('show');
+        document.removeEventListener('click', close);
+      }
+    };
+    setTimeout(()=>document.addEventListener('click', close),0);
+  }
+
+  document.addEventListener('click', function(e){
+    const btn = e.target.closest && e.target.closest('.kebab .icon-btn, .kebab-btn');
+    if(btn){
+      const menu = btn.nextElementSibling && btn.nextElementSibling.classList.contains('kebab-menu') ? btn.nextElementSibling : null;
+      if(menu){
+        e.stopPropagation();
+        if(menu.dataset.open==='1'){
+          menu.style.display='none'; menu.dataset.open='0'; menu.classList.remove('mobile');
+          ensureScrim().classList.remove('show');
+        }else{
+          openMenu(btn, menu);
+        }
+      }
+    }
+  });
+})();

@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Simple Budget v2.18 (Mobile Cards)</title>
+  <title>Simple Budget v2.19 (Pro Mobile)</title>
   <link rel="stylesheet" href="style.css">
 
   <link rel="manifest" href="manifest.json">
@@ -17,9 +17,11 @@
   <header class="app-header">
     <div class="brand">
       <div class="logo">SB</div>
-      <h1>Simple Budget</h1><span class="tag">v2.18</span>
+      <h1>Simple Budget</h1><span class="tag">v2.19</span>
     </div>
-    <div class="actions">
+    <div class="actions-toolbar">
+  <div class="actions-primary">
+
       <button id="newMonthBtn" class="btn" title="Creates a new month by copying the last month (dates & planned).">New Month (copy prev)</button>
       <button id="copyPrevBtn" class="btn" title="Copies the previous month's data into the currently selected month.">Copy Prev → Current</button>
       <button id="newTemplateBtn" class="btn btn-ghost" title="Create a new blank month with standard categories (no dates)">New Template</button>
@@ -218,10 +220,10 @@ if ('serviceWorker' in navigator) {
 
 
   <nav class="bottom-nav" id="bottomNav">
-    <button data-target=".summary">Summary</button>
-    <button data-target="#sec-income">Income</button>
-    <button data-target="#sec-expenses">Expenses</button>
-    <button data-target="#sec-debts">Debts</button>
+    <button data-target=".summary"><span class="ico home"></span><span>Summary</button>
+    <button data-target="#sec-income"><span class="ico income"></span><span>Income</button>
+    <button data-target="#sec-expenses"><span class="ico expenses"></span><span>Expenses</button>
+    <button data-target="#sec-debts"><span class="ico debts"></span><span>Debts</button>
   </nav>
   <script>
     if ('serviceWorker' in navigator) {

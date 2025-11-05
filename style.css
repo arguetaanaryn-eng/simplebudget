@@ -259,3 +259,59 @@ body.compact .metric .label, body.auto-compact .metric .label { font-size: 11px;
   .app-header .actions .btn, .app-header .actions .import-label{ padding:6px 10px; font-size:13px; }
   .summary{ grid-template-columns: 1fr 1fr; }
 }
+
+
+/* v2.19 Pro Mobile theme */
+:root{
+  --bg: #F7FAFC;
+  --card: #FFFFFF;
+  --brand: #2563EB;        /* sapphire blue */
+  --brand-ink: #0B3B9C;
+  --ink: #0f172a;
+  --muted: #5b6470;
+  --line: rgba(2, 6, 23, 0.08);
+  --shadow: rgba(2, 6, 23, 0.1);
+}
+
+body{ background: var(--bg); color: var(--ink); font-family: -apple-system, BlinkMacSystemFont, "Inter", "SF Pro Text", Segoe UI, Roboto, Helvetica, Arial, sans-serif; }
+h1,h2,h3{ color: var(--ink); letter-spacing: -0.01em; }
+.btn{ border-radius: 12px; }
+.btn:hover{ box-shadow: 0 3px 10px var(--shadow); }
+.input{ border-radius: 12px; }
+
+/* Actions toolbar (Option B) */
+.actions-toolbar{ display:flex; gap:10px; align-items:stretch; flex-wrap:wrap; }
+.actions-primary{ display:flex; gap:10px; flex:1 1 auto; flex-wrap:wrap; }
+.actions-more{ position:relative; }
+.actions-more #moreBtn{ min-width: 88px; }
+.actions-more .menu{
+  position:absolute; right:0; top:calc(100% + 6px);
+  background:#fff; border:1px solid var(--line); border-radius:14px;
+  box-shadow:0 24px 60px var(--shadow);
+  padding:6px; display:none; min-width:220px; z-index:1000;
+}
+.actions-more .menu .menu-item, .actions-more .menu label.menu-item{
+  display:block; width:100%; text-align:left; padding:10px 12px;
+  border:none; background:transparent; border-radius:10px; color: var(--ink);
+}
+.actions-more .menu .menu-item:hover, .actions-more .menu label.menu-item:hover{ background:#F2F6FF; }
+
+/* Emphasize primary buttons */
+.actions-primary .btn{ background:#fff; border:1px solid var(--line); }
+.actions-primary .btn:nth-child(1){ background: var(--brand); color:#fff; border-color: transparent; }
+.actions-primary .btn:nth-child(1):hover{ background:#1d4ed8; }
+.actions-primary .btn:nth-child(3){ background:#e8f0ff; color: var(--brand-ink); border-color: rgba(37,99,235,.25); }
+
+/* Bottom nav icons */
+.bottom-nav button{ display:flex; align-items:center; justify-content:center; gap:6px; }
+.bottom-nav .ico{ width:16px; height:16px; display:inline-block; background: currentColor; -webkit-mask-size: contain; mask-size: contain; -webkit-mask-repeat:no-repeat; mask-repeat:no-repeat; -webkit-mask-position:center; mask-position:center; }
+.bottom-nav .home{ -webkit-mask-image: url('data:image/svg+xml;utf8,<svg fill="white" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 10.5 12 3l9 7.5V21a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1v-9.5Z"/></svg>'); mask-image: url('data:image/svg+xml;utf8,<svg fill="white" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 10.5 12 3l9 7.5V21a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1v-9.5Z"/></svg>'); }
+.bottom-nav .income{ -webkit-mask-image: url('data:image/svg+xml;utf8,<svg fill="white" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M4 19h16v2H4v-2Zm1-8h3v6H5v-6Zm5-4h3v10h-3V7Zm5 3h3v7h-3V10Z"/></svg>'); mask-image: url('data:image/svg+xml;utf8,<svg fill="white" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M4 19h16v2H4v-2Zm1-8h3v6H5v-6Zm5-4h3v10h-3V7Zm5 3h3v7h-3V10Z"/></svg>'); }
+.bottom-nav .expenses{ -webkit-mask-image: url('data:image/svg+xml;utf8,<svg fill="white" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 5h18v2H3V5Zm3 4h12v10a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V9Zm2 2v7h8v-7H8Z"/></svg>'); mask-image: url('data:image/svg+xml;utf8,<svg fill="white" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 5h18v2H3V5Zm3 4h12v10a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V9Zm2 2v7h8v-7H8Z"/></svg>'); }
+.bottom-nav .debts{ -webkit-mask-image: url('data:image/svg+xml;utf8,<svg fill="white" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 1 3 5v6c0 5 3.8 9.7 9 11 5.2-1.3 9-6 9-11V5l-9-4Zm0 2.2 6 2.7v4.1c0 4-2.4 7.8-6 9-3.6-1.2-6-5-6-9V5.9l6-2.7Z"/></svg>'); mask-image: url('data:image/svg+xml;utf8,<svg fill="white" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 1 3 5v6c0 5 3.8 9.7 9 11 5.2-1.3 9-6 9-11V5l-9-4Zm0 2.2 6 2.7v4.1c0 4-2.4 7.8-6 9-3.6-1.2-6-5-6-9V5.9l6-2.7Z"/></svg>'); }
+
+/* Mobile adjustments */
+@media (max-width: 720px){
+  .actions-primary{ flex:1 1 100%; }
+  .app-header .actions .btn, .actions-primary .btn, .actions-more #moreBtn{ padding:10px 12px; font-size:14px; }
+}

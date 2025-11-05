@@ -1190,3 +1190,19 @@ document.addEventListener("DOMContentLoaded", function(){
     renderMobileCards();
   });
 })();
+
+
+// v2.19: More menu toggle (Option B toolbar)
+document.addEventListener('DOMContentLoaded', ()=>{
+  const moreBtn = document.getElementById('moreBtn');
+  const menu = document.getElementById('moreMenu');
+  if(!moreBtn || !menu) return;
+  function close(){ menu.style.display='none'; document.removeEventListener('click', onDoc); }
+  function onDoc(e){ if(!menu.contains(e.target) && e.target!==moreBtn) close(); }
+  moreBtn.addEventListener('click', (e)=>{
+    e.stopPropagation();
+    const open = menu.style.display==='block';
+    menu.style.display = open ? 'none' : 'block';
+    if(!open){ setTimeout(()=>document.addEventListener('click', onDoc),0); }
+  });
+});

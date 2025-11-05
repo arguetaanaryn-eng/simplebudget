@@ -2378,3 +2378,139 @@ window.__commitAndRerender = function(){
   document.addEventListener('change', (e)=>{ if(e.target && e.target.id==='monthSelect'){ renderDeletes(); }});
   window.addEventListener('resize', renderDeletes);
 })();
+
+
+
+// v2.23.2: Summary includes Debts + Net (Planned | Actual)
+(function(){
+  function fmt(n){ n = Number(n)||0; return n.toLocaleString(undefined,{minimumFractionDigits:2, maximumFractionDigits:2}); }
+  function cur(){ const sel=document.getElementById('monthSelect'); return sel&&sel.value&&data.months?data.months[sel.value]:null; }
+  function totals(){
+    const m = cur(); if(!m) return {pi:0,ai:0,pe:0,ae:0,pd:0,ad:0};
+    let pi=0, ai=0, pe=0, ae=0, pd=0, ad=0;
+    (m.income||[]).forEach(r=>{ pi+=(+r.planned||0); ai+=(+r.actual||0); });
+    (m.expenseGroups||[]).forEach(g=> (g.items||[]).forEach(it=>{ pe+=(+it.planned||0); ae+=(+it.actual||0); }));
+    (m.debts||[]).forEach(d=>{ pd+=(+d.plannedPayment||0); ad+=(+d.actualPayment||0); });
+    return {pi,ai,pe,ae,pd,ad};
+  }
+  function render(){
+    const host = document.querySelector('.summary'); if(!host) return;
+    const t = totals();
+    const netP = t.pi - t.pe - t.pd;
+    const netA = t.ai - t.ae - t.ad;
+    const tiles = [
+      ['Income', t.pi, t.ai],
+      ['Expenses', t.pe, t.ae],
+      ['Debts', t.pd, t.ad],
+      ['Net', netP, netA]
+    ].map(([title, v1, v2])=>`<div class="tile">
+      <div class="title">${title}</div>
+      <div class="pair">
+        <div><div class="k">Planned</div><div class="v">$${fmt(v1)}</div></div>
+        <div><div class="k">Actual</div><div class="v">$${fmt(v2)}</div></div>
+      </div>
+    </div>`).join('');
+    host.innerHTML = tiles;
+  }
+  const old = window.__renderSummary;
+  window.__renderSummary = render;
+  // ensure host updates
+  const _all = window.renderAll;
+  window.renderAll = function(){ if(typeof _all==='function') _all(); render(); };
+  document.addEventListener('DOMContentLoaded', render);
+  document.addEventListener('change', (e)=>{ if(e.target && e.target.id==='monthSelect') render(); });
+  window.addEventListener('resize', render);
+})();
+
+
+
+// v2.23.2: Remove orphan kebab buttons where no menu exists
+(function(){
+  function sweep(){
+    document.querySelectorAll('.kebab').forEach(k=>{
+      const menu = k.querySelector('.kebab-menu');
+      const btn = k.querySelector('.icon-btn');
+      if(!menu && btn){
+        k.classList.add('orphan');
+        btn.disabled = true;
+        k.style.display='none';
+      }
+    });
+  }
+  document.addEventListener('DOMContentLoaded', sweep);
+  const _all = window.renderAll;
+  window.renderAll = function(){ if(typeof _all==='function') _all(); sweep(); if(window.__renderSummary) window.__renderSummary(); };
+})();
+
+
+
+// v2.23.2: Add delete button on Debt cards + delete debt transactions
+(function(){
+  function cur(){ const sel=document.getElementById('monthSelect'); return sel&&sel.value&&data.months?data.months[sel.value]:null; }
+  function wireDebts(){
+    const m = cur(); if(!m) return;
+    const wrap = document.getElementById('debtCards'); if(!wrap) return;
+    const cards = wrap.querySelectorAll('.card-item');
+    cards.forEach((c, idx)=>{
+      if(c.querySelector('.debt-actions')) return;
+      // actions container next to the title row if present; otherwise create one
+      let titleRow = c.querySelector('.title-row');
+      if(!titleRow){
+        titleRow = document.createElement('div'); titleRow.className='title-row'; c.prepend(titleRow);
+      }
+      const actions = document.createElement('div'); actions.className='debt-actions';
+      const del = document.createElement('button'); del.className='icon-btn danger'; del.title='Delete Debt';
+      const ic = document.createElement('span'); ic.className='ic-trash'; del.appendChild(ic);
+      del.addEventListener('click', ()=>{
+        if(!m.debts || !m.debts[idx]) return;
+        const name = m.debts[idx].name || 'this debt';
+        if(confirm(`Delete "${name}"?`)){
+          m.debts.splice(idx,1);
+          try{ saveData(); }catch(e){}
+          try{ if(window.renderAll) window.renderAll(); }catch(e){}
+        }
+      });
+      actions.appendChild(del);
+      titleRow.appendChild(actions);
+    });
+
+    // Debt transactions (if present) — add delete link/button
+    const txnWrap = document.getElementById('debtTransactions');
+    if(txnWrap){
+      txnWrap.querySelectorAll('.txn-row').forEach((row, ridx)=>{
+        if(row.querySelector('.txn-delete')) return;
+        const del = document.createElement('span'); del.className='txn-delete'; del.textContent='Delete';
+        del.addEventListener('click', ()=>{
+          const list = m.debtTransactions || [];
+          if(list[ridx]){
+            if(confirm('Delete this debt transaction?')){
+              list.splice(ridx,1);
+              try{ saveData(); }catch(e){}
+              try{ if(window.renderAll) window.renderAll(); }catch(e){}
+            }
+          }
+        });
+        row.appendChild(del);
+      });
+    }
+  }
+  const _all = window.renderAll;
+  window.renderAll = function(){ if(typeof _all==='function') _all(); wireDebts(); if(window.__renderSummary) window.__renderSummary(); };
+  document.addEventListener('DOMContentLoaded', wireDebts);
+  document.addEventListener('change', (e)=>{ if(e.target && e.target.id==='monthSelect') wireDebts(); });
+})();
+
+
+
+// v2.23.3: single source of truth for version
+window.APP_VERSION = "v2.23.4";
+window.applyAppVersion = function(){
+  try{
+    document.querySelectorAll('.app-version').forEach(el=>{ el.textContent = window.APP_VERSION; });
+  }catch(e){}
+};
+document.addEventListener('DOMContentLoaded', window.applyAppVersion);
+(function(){
+  const _all = window.renderAll;
+  window.renderAll = function(){ if(typeof _all==='function') _all(); window.applyAppVersion && window.applyAppVersion(); };
+})();

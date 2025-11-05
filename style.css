@@ -675,3 +675,60 @@ h1,h2,h3{ color: var(--ink); letter-spacing:-0.01em; }
 .icon-btn.danger{ background:#fff5f5; border-color: rgba(244,63,94,.35); color:#b91c1c; }
 .icon-btn .ic{ width:16px; height:16px; display:inline-block; background: currentColor; -webkit-mask-size: contain; mask-size: contain; -webkit-mask-repeat:no-repeat; mask-repeat:no-repeat; -webkit-mask-position:center; mask-position:center; }
 .ic-trash{ -webkit-mask-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" fill="white" viewBox="0 0 24 24"><path d="M9 3h6a1 1 0 0 1 1 1v1h5v2H3V5h5V4a1 1 0 0 1 1-1Zm1 6h2v10h-2V9Zm4 0h2v10h-2V9ZM7 9h2v10H7V9Z"/></svg>'); mask-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" fill="white" viewBox="0 0 24 24"><path d="M9 3h6a1 1 0 0 1 1 1v1h5v2H3V5h5V4a1 1 0 0 1 1-1Zm1 6h2v10h-2V9Zm4 0h2v10h-2V9ZM7 9h2v10H7V9Z"/></svg>'); }
+
+
+/* v2.23.2: hide orphan kebab buttons and add debt delete styling */
+.kebab:empty, .kebab .icon-btn:only-child:disabled { display:none !important; }
+.kebab.orphan, .kebab .orphan{ display:none !important; }
+
+.debt-actions{ margin-left:auto; display:flex; gap:8px; }
+.debt-actions .icon-btn{
+  width:32px; height:32px; border-radius:10px; border:1px solid var(--line);
+  background:#fff; display:flex; align-items:center; justify-content:center; box-shadow:0 1px 3px var(--shadow);
+}
+.debt-actions .icon-btn.danger{ background:#fff5f5; border-color: rgba(244,63,94,.35); color:#b91c1c; }
+.ic-trash{ width:16px; height:16px; display:inline-block; background: currentColor;
+  -webkit-mask-size: contain; mask-size: contain; -webkit-mask-repeat:no-repeat; mask-repeat:no-repeat;
+  -webkit-mask-position:center; mask-position:center;
+  -webkit-mask-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path fill="white" d="M9 3h6a1 1 0 0 1 1 1v1h5v2H3V5h5V4a1 1 0 0 1 1-1Zm1 6h2v10h-2V9Zm4 0h2v10h-2V9ZM7 9h2v10H7V9Z"/></svg>');
+  mask-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path fill="white" d="M9 3h6a1 1 0 0 1 1 1v1h5v2H3V5h5V4a1 1 0 0 1 1-1Zm1 6h2v10h-2V9Zm4 0h2v10h-2V9ZM7 9h2v10H7V9Z"/></svg>');
+}
+.txn-delete{ color:#b91c1c; text-decoration:underline; cursor:pointer; font-size:12px; }
+
+
+/* v2.23.3: subtle version chip */
+.app-version{
+  display:inline-block; margin-left:8px; padding:2px 8px;
+  font-size:12px; border-radius:999px; background:#EEF2FF; color:#1E3A8A;
+}
+
+
+
+/* v2.23.4: darker cobalt summary tiles, white text, mobile spacing */
+:root{
+  --summary-cobalt: #1E3A8A; /* darker than header */
+}
+.summary{
+  display:grid; gap:10px;
+  grid-template-columns: repeat(4, minmax(220px, 1fr));
+}
+@media (max-width: 1024px){
+  .summary{ grid-template-columns: repeat(2, minmax(180px, 1fr)); gap:8px; }
+}
+@media (max-width: 560px){
+  .summary{ grid-template-columns: 1fr; gap:8px; }
+}
+
+.summary .tile{
+  background: var(--summary-cobalt) !important;
+  color: #fff !important;
+  border: none !important;
+  border-radius: 14px;
+  padding: 10px 12px;
+  box-shadow: 0 8px 16px rgba(30,58,138,.25);
+  text-shadow: 0 1px 2px rgba(0,0,0,.25);
+}
+.summary .tile .title{ color: #fff; opacity: .95; }
+.summary .tile .k{ color: #fff; opacity: .85; }
+.summary .tile .v{ color: #fff; font-weight: 800; }
+.summary .tile .pill{ background: rgba(255,255,255,.18); color: #fff; }

@@ -408,3 +408,10 @@ body.keyboard-open{
 .card-item .title-row{ display:flex; align-items:center; justify-content:space-between; gap:8px; }
 .card-item .title-row .title{ font-weight:600; font-size:16px; }
 .card-item .title-row .title.editable{ border-bottom:1px dashed rgba(2,6,23,.25); cursor:text; }
+
+
+/* v2.22.5: lighter header background for better contrast with icons */
+.card-group .title-row, .card-group .group-title{
+  background: #F0F5FF; /* slightly lighter than 2.22.3 */
+  color: var(--brand-ink);
+}

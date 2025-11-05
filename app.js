@@ -2110,3 +2110,81 @@ window.__commitAndRerender = function(){
   document.addEventListener('change', (e)=>{ if(e.target && e.target.id==='monthSelect'){ window.renderExpenseCards(); window.renderIncomeCards(); window.renderDebtCards(); }});
   window.addEventListener('resize', ()=>{ window.renderExpenseCards(); window.renderIncomeCards(); window.renderDebtCards(); });
 })();
+
+
+
+// v2.22.6: Keep kebab menus in view (flyout on desktop, bottom sheet on mobile)
+(function(){
+  function isMobile(){ return window.matchMedia && window.matchMedia('(max-width:700px)').matches; }
+
+  function openMenu(btn, menu){
+    // Close others
+    document.querySelectorAll('.kebab-menu').forEach(m=>{ m.style.display='none'; m.dataset.open='0'; m.classList.remove('mobile'); });
+    // Scrim for mobile
+    let scrim = document.querySelector('.menu-scrim');
+    if(!scrim){
+      scrim = document.createElement('div');
+      scrim.className = 'menu-scrim';
+      document.body.appendChild(scrim);
+    }
+    const mobile = isMobile();
+    if(mobile){
+      menu.classList.add('mobile');
+      // bottom sheet
+      menu.style.left = '0'; menu.style.right='0';
+      menu.style.top = 'auto'; menu.style.bottom='0';
+      menu.style.display = 'block'; menu.dataset.open='1';
+      scrim.classList.add('show');
+      const close = (ev)=>{
+        if(!menu.contains(ev.target) && ev.target!==btn){
+          menu.style.display='none'; menu.dataset.open='0'; menu.classList.remove('mobile');
+          scrim.classList.remove('show');
+          document.removeEventListener('click', close);
+        }
+      };
+      setTimeout(()=>document.addEventListener('click', close),0);
+    } else {
+      // desktop flyout near button
+      const rect = btn.getBoundingClientRect();
+      const mw = 240;
+      const mh = Math.min(300, window.innerHeight * 0.65);
+      menu.style.minWidth = mw + 'px';
+      menu.style.maxHeight = mh + 'px';
+      let left = Math.min(rect.left, window.innerWidth - mw - 8);
+      let top = rect.bottom + 8;
+      if (top + mh > window.innerHeight - 8){
+        top = Math.max(8, rect.top - mh - 8);
+      }
+      left = Math.max(8, Math.min(left, window.innerWidth - mw - 8));
+      top = Math.max(8, Math.min(top, window.innerHeight - 8));
+      menu.style.left = left + 'px';
+      menu.style.top = top + 'px';
+      menu.style.display = 'block'; menu.dataset.open='1';
+      scrim.classList.remove('show');
+      const close = (ev)=>{
+        if(!menu.contains(ev.target) && ev.target!==btn){
+          menu.style.display='none'; menu.dataset.open='0';
+          document.removeEventListener('click', close);
+        }
+      };
+      setTimeout(()=>document.addEventListener('click', close),0);
+    }
+  }
+
+  document.addEventListener('click', function(e){
+    const btn = e.target.closest && e.target.closest('.kebab .icon-btn');
+    if(btn){
+      const menu = btn.nextElementSibling;
+      if(menu && menu.classList.contains('kebab-menu')){
+        e.stopPropagation();
+        const isOpen = menu.dataset.open === '1';
+        if(isOpen){
+          menu.style.display='none'; menu.dataset.open='0'; menu.classList.remove('mobile');
+          const s = document.querySelector('.menu-scrim'); if(s) s.classList.remove('show');
+        } else {
+          openMenu(btn, menu);
+        }
+      }
+    }
+  });
+})();

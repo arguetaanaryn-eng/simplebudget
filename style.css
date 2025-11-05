@@ -415,3 +415,83 @@ body.keyboard-open{
   background: #F0F5FF; /* slightly lighter than 2.22.3 */
   color: var(--brand-ink);
 }
+
+
+/* v2.22.6: Blue + Orange scheme, header pop, safe menus */
+:root{
+  --brand: #1E40AF;        /* deep blue */
+  --brand-ink: #0B3B9C;
+  --accent: #F97316;       /* orange accent */
+  --accent-ink: #9A3412;
+  --bg: #F7FAFC;
+  --card: #FFFFFF;
+  --ink: #0f172a;
+  --muted: #5b6470;
+  --line: rgba(2, 6, 23, 0.08);
+  --shadow: rgba(2, 6, 23, 0.12);
+}
+
+.actions-primary .btn:nth-child(1){ background: var(--brand); color:#fff; border-color: transparent; }
+.actions-primary .btn:nth-child(1):hover{ background:#17358E; }
+.actions-primary .btn:nth-child(3){ background: rgba(30,64,175,.08); color: var(--brand-ink); border-color: rgba(30,64,175,.25); }
+
+.btn.danger{ background: rgba(249,115,22,.1); color: var(--accent-ink); border:1px solid rgba(249,115,22,.35); }
+.btn.danger:hover{ background: rgba(249,115,22,.16); }
+
+/* Group headers: light blue to pop; subitems stay white */
+.card-group{ border-radius: 14px; padding: 10px; background: var(--card); border: 1px solid var(--line); }
+.card-group .title-row, .card-group .group-title{
+  background: #EAF2FF; /* lighter blue header */
+  color: var(--brand-ink);
+  padding: 12px 14px;
+  border-radius: 12px;
+  font-weight: 800;
+  display:flex; align-items:center; justify-content:space-between; gap:8px;
+  margin-bottom: 10px;
+  box-shadow: inset 0 0 0 1px rgba(30,64,175,.12);
+}
+.card-item{ background:#fff; }
+
+/* Kebab menu: desktop flyout; mobile becomes bottom sheet */
+.kebab-menu{
+  position: fixed;
+  min-width: 220px;
+  max-height: min(300px, 65vh);
+  overflow:auto;
+  z-index: 100000;
+  background:#fff;
+  border:1px solid var(--line);
+  border-radius:12px;
+  box-shadow: 0 18px 46px var(--shadow);
+  display:none;
+  padding:6px;
+}
+.kebab-menu .menu-item, .kebab-menu button{
+  display:block; width:100%; text-align:left;
+  padding:12px 14px; background:transparent; border:none;
+  border-radius:10px; color: var(--ink);
+}
+.kebab-menu .menu-item:hover, .kebab-menu button:hover{ background:#F4F7FB; }
+
+/* Bottom sheet mode */
+@media (max-width: 700px){
+  .kebab-menu.mobile{
+    left: 0 !important; right: 0 !important;
+    bottom: 0 !important; top: auto !important;
+    position: fixed !important;
+    margin: 0 auto;
+    width: 100%;
+    max-width: 640px;
+    border-radius: 16px 16px 0 0;
+    box-shadow: 0 -10px 40px var(--shadow);
+    padding-bottom: env(safe-area-inset-bottom, 16px);
+  }
+  .menu-scrim{
+    position: fixed; inset: 0; background: rgba(2,6,23,.35);
+    z-index: 99999; display:none;
+  }
+  .menu-scrim.show{ display:block; }
+}
+
+/* Accent chips/badges (e.g., Interest) */
+.badge.accent{ background: rgba(249,115,22,.1); color: var(--accent-ink); border:1px solid rgba(249,115,22,.35); }

@@ -350,3 +350,55 @@ h1,h2,h3{ color: var(--ink); letter-spacing: -0.01em; }
   #incomeCards, #incomeTxCards{ display:grid; }
   /* Only show tx cards when transactions mode is on; JS toggles aria-hidden */
 }
+
+
+/* v2.21.2: iOS zoom prevention + focus handling */
+html{ -webkit-text-size-adjust: 100%; }
+@supports (-webkit-touch-callout: none) {
+  /* iOS-specific tweaks */
+  @media (max-width: 820px){
+    input, select, textarea, .input{
+      font-size: 16px !important; /* Prevent Safari auto-zoom */
+      line-height: 1.4;
+    }
+    .card-item .value input{
+      font-size: 16px !important;
+      line-height: 1.4;
+    }
+  }
+}
+
+/* Make focused inline editors more visible and keep layout stable */
+.card-item .value input:focus{
+  outline: 2px solid rgba(37,99,235,.35);
+  box-shadow: 0 0 0 3px rgba(37,99,235,.15);
+}
+
+/* Reserve a bit more bottom space when keyboard is up (paired with JS) */
+body.keyboard-open{
+  padding-bottom: 120px;
+}
+
+
+/* v2.22: inline action menu for Rename/Delete */
+.card-actions{
+  margin-left:auto; display:flex; gap:6px; align-items:center;
+}
+.icon-btn{
+  width:30px; height:30px; border-radius:10px; border:1px solid var(--line); background:#fff;
+  display:flex; align-items:center; justify-content:center; cursor:pointer;
+}
+.icon-btn:active{ transform: translateY(1px); }
+.kebab{ position:relative; }
+.kebab-menu{
+  position:absolute; right:0; top:calc(100% + 6px);
+  background:#fff; border:1px solid var(--line); border-radius:12px; box-shadow:0 16px 40px var(--shadow);
+  display:none; min-width:160px; z-index:1000; padding:6px;
+}
+.kebab-menu button{
+  display:block; width:100%; text-align:left; padding:10px 12px; background:transparent; border:none; border-radius:10px;
+}
+.kebab-menu button:hover{ background:#f4f7fb; }
+
+.card-item .title-row{ display:flex; align-items:center; gap:8px; }
+.card-item .title.editable{ border-bottom: 1px dashed rgba(2,6,23,.25); cursor:text; }

@@ -1600,3 +1600,263 @@ window.__commitAndRerender = function(){
   try{ saveData(); }catch(e){}
   try{ if (typeof window.renderAll === 'function') window.renderAll(); }catch(e){}
 };
+
+
+// v2.21.2: iOS keyboard/zoom UX improvements
+(function(){
+  const vv = window.visualViewport;
+  if (!vv) return;
+  function onResize(){
+    // When the on-screen keyboard opens, the visual viewport height shrinks
+    const open = vv.height < window.innerHeight - 100; // heuristic
+    document.body.classList.toggle('keyboard-open', open);
+  }
+  vv.addEventListener('resize', onResize);
+  window.addEventListener('orientationchange', onResize);
+  document.addEventListener('focusin', onResize);
+  document.addEventListener('focusout', onResize);
+})();
+
+
+// v2.22: Rename/Delete for groups & items (expenses), plus income/debt names
+(function(){
+  function promptText(title, initial){
+    const val = window.prompt(title, initial==null? '': String(initial));
+    if(val===null) return null;
+    return val.trim();
+  }
+  function confirmDel(msg){ return window.confirm(msg); }
+
+  // Hook into existing renderers created earlier (v2.18+)
+  const _renderExpenseCards = window.renderExpenseCards;
+  const _renderDebtCards = window.renderDebtCards;
+  const _renderIncomeCards = window.renderIncomeCards;
+
+  window.renderExpenseCards = function(){
+    if(typeof _renderExpenseCards==='function') _renderExpenseCards();
+    try {
+      const mSel = document.getElementById('monthSelect');
+      const month = (mSel && data.months) ? data.months[mSel.value] : null;
+      const cont = document.getElementById('expenseCards');
+      if(!month || !cont) return;
+      // Enhance groups with menus and rename on titles
+      const groups = month.expenseGroups || [];
+      const groupEls = cont.querySelectorAll('.card-group');
+      groupEls.forEach((gEl, gi)=>{
+        // Insert a header row with actions
+        const gt = gEl.querySelector('.group-title');
+        if(gt && !gt.classList.contains('wired')){
+          gt.classList.add('wired');
+          const wrap = document.createElement('div');
+          wrap.className = 'title-row';
+          const titleSpan = document.createElement('span');
+          titleSpan.textContent = gt.textContent;
+          titleSpan.className = 'title editable';
+          titleSpan.addEventListener('click', ()=>{
+            const next = promptText('Rename group', titleSpan.textContent);
+            if(next && groups[gi]){
+              groups[gi].group = next;
+              saveData(); if(window.renderAll) renderAll();
+            }
+          });
+          const actions = document.createElement('div');
+          actions.className = 'card-actions';
+          // Kebab menu
+          const kebab = document.createElement('div'); kebab.className = 'kebab';
+          const btn = document.createElement('button'); btn.className='icon-btn'; btn.title='More';
+          btn.textContent = '⋯';
+          const menu = document.createElement('div'); menu.className='kebab-menu';
+          const rn = document.createElement('button'); rn.textContent='Rename Group';
+          rn.addEventListener('click', ()=>{
+            const next = promptText('Rename group', groups[gi].group||'');
+            if(next){ groups[gi].group = next; saveData(); if(window.renderAll) renderAll(); }
+            menu.style.display='none';
+          });
+          const del = document.createElement('button'); del.textContent='Delete Group';
+          del.addEventListener('click', ()=>{
+            if(confirmDel('Delete group and all its items?')){
+              groups.splice(gi,1); saveData(); if(window.renderAll) renderAll();
+            }
+            menu.style.display='none';
+          });
+          menu.appendChild(rn); menu.appendChild(del);
+          kebab.appendChild(btn); kebab.appendChild(menu);
+          btn.addEventListener('click', (e)=>{
+            e.stopPropagation();
+            menu.style.display = menu.style.display==='block' ? 'none' : 'block';
+            const close = (ev)=>{ if(!menu.contains(ev.target) && ev.target!==btn){ menu.style.display='none'; document.removeEventListener('click', close); } };
+            setTimeout(()=>document.addEventListener('click', close),0);
+          });
+
+          actions.appendChild(kebab);
+          wrap.appendChild(titleSpan); wrap.appendChild(actions);
+          gt.replaceWith(wrap);
+        }
+
+        // Wire item title rename/delete per card
+        const cards = gEl.querySelectorAll('.card-item');
+        cards.forEach((cEl, ci)=>{
+          // Title element is first child with class 'title'
+          const title = cEl.querySelector('.title');
+          if(!title) return;
+          if(!title.classList.contains('wired')){
+            title.classList.add('wired','editable');
+            title.addEventListener('click', ()=>{
+              const group = groups[gi];
+              if(!group || !group.items) return;
+              const cur = group.items[ci] && group.items[ci].name || '';
+              const next = promptText('Rename item', cur);
+              if(next && group.items[ci]){
+                group.items[ci].name = next;
+                saveData(); if(window.renderAll) renderAll();
+              }
+            });
+            // Add a small kebab next to title
+            const acts = document.createElement('div'); acts.className='card-actions';
+            const keb = document.createElement('div'); keb.className='kebab';
+            const b = document.createElement('button'); b.className='icon-btn'; b.textContent='⋯';
+            const m = document.createElement('div'); m.className='kebab-menu';
+            const rn2 = document.createElement('button'); rn2.textContent='Rename Item';
+            rn2.addEventListener('click', ()=>{
+              const group = groups[gi]; if(!group) return;
+              const cur = group.items[ci] && group.items[ci].name || '';
+              const next = promptText('Rename item', cur);
+              if(next && group.items[ci]){ group.items[ci].name = next; saveData(); if(window.renderAll) renderAll(); }
+              m.style.display='none';
+            });
+            const del2 = document.createElement('button'); del2.textContent='Delete Item';
+            del2.addEventListener('click', ()=>{
+              const group = groups[gi]; if(!group) return;
+              if(confirmDel('Delete this item?')){
+                group.items.splice(ci,1); saveData(); if(window.renderAll) renderAll();
+              }
+              m.style.display='none';
+            });
+            m.appendChild(rn2); m.appendChild(del2);
+            keb.appendChild(b); keb.appendChild(m);
+            b.addEventListener('click', (e)=>{
+              e.stopPropagation();
+              m.style.display = m.style.display==='block' ? 'none' : 'block';
+              const close = (ev)=>{ if(!m.contains(ev.target) && ev.target!==b){ m.style.display='none'; document.removeEventListener('click', close); } };
+              setTimeout(()=>document.addEventListener('click', close),0);
+            });
+            // Insert acts after title text
+            const row = title.parentElement;
+            if(row && row.classList.contains('title-row')){
+              row.appendChild(acts); acts.appendChild(keb);
+            }
+          }
+        });
+      });
+    } catch(e){ /* noop */ }
+  };
+
+  window.renderIncomeCards = function(){
+    if(typeof _renderIncomeCards==='function') _renderIncomeCards();
+    try{
+      const mSel = document.getElementById('monthSelect');
+      const month = (mSel && data.months) ? data.months[mSel.value] : null;
+      const cont = document.getElementById('incomeCards');
+      if(!month || !cont) return;
+      const rows = month.income || [];
+      const cards = cont.querySelectorAll('.card-item');
+      cards.forEach((cEl, idx)=>{
+        const title = cEl.querySelector('.title');
+        if(!title) return;
+        if(!title.classList.contains('wired')){
+          title.classList.add('wired','editable');
+          title.addEventListener('click', ()=>{
+            const cur = rows[idx] && rows[idx].name || '';
+            const next = promptText('Rename income', cur);
+            if(next && rows[idx]){ rows[idx].name = next; saveData(); if(window.renderAll) renderAll(); }
+          });
+          // kebab for delete
+          const acts = document.createElement('div'); acts.className='card-actions';
+          const keb = document.createElement('div'); keb.className='kebab';
+          const b = document.createElement('button'); b.className='icon-btn'; b.textContent='⋯';
+          const m = document.createElement('div'); m.className='kebab-menu';
+          const del = document.createElement('button'); del.textContent='Delete Income';
+          del.addEventListener('click', ()=>{
+            if(confirmDel('Delete this income line?')){
+              rows.splice(idx,1); saveData(); if(window.renderAll) renderAll();
+            }
+            m.style.display='none';
+          });
+          m.appendChild(del);
+          keb.appendChild(b); keb.appendChild(m);
+          b.addEventListener('click', (e)=>{
+            e.stopPropagation();
+            m.style.display = m.style.display==='block' ? 'none' : 'block';
+            const close = (ev)=>{ if(!m.contains(ev.target) && ev.target!==b){ m.style.display='none'; document.removeEventListener('click', close); } };
+            setTimeout(()=>document.addEventListener('click', close),0);
+          });
+          // Append to the title row
+          const row = title.parentElement;
+          if(row && row.classList.contains('title-row')){
+            row.appendChild(acts); acts.appendChild(keb);
+          } else {
+            // If not using title-row here, append to card top
+            cEl.insertBefore(acts, cEl.firstChild.nextSibling);
+            acts.appendChild(keb);
+          }
+        }
+      });
+    }catch(e){}
+  };
+
+  window.renderDebtCards = function(){
+    if(typeof _renderDebtCards==='function') _renderDebtCards();
+    try{
+      const mSel = document.getElementById('monthSelect');
+      const month = (mSel && data.months) ? data.months[mSel.value] : null;
+      const cont = document.getElementById('debtCards');
+      if(!month || !cont) return;
+      const rows = month.debts || [];
+      const cards = cont.querySelectorAll('.card-item');
+      cards.forEach((cEl, idx)=>{
+        const title = cEl.querySelector('.title');
+        if(!title) return;
+        if(!title.classList.contains('wired')){
+          title.classList.add('wired','editable');
+          title.addEventListener('click', ()=>{
+            const cur = rows[idx] && rows[idx].name || '';
+            const next = promptText('Rename debt', cur);
+            if(next && rows[idx]){ rows[idx].name = next; saveData(); if(window.renderAll) renderAll(); }
+          });
+          // kebab for delete
+          const acts = document.createElement('div'); acts.className='card-actions';
+          const keb = document.createElement('div'); keb.className='kebab';
+          const b = document.createElement('button'); b.className='icon-btn'; b.textContent='⋯';
+          const m = document.createElement('div'); m.className='kebab-menu';
+          const del = document.createElement('button'); del.textContent='Delete Debt';
+          del.addEventListener('click', ()=>{
+            if(confirmDel('Delete this debt line?')){
+              rows.splice(idx,1); saveData(); if(window.renderAll) renderAll();
+            }
+            m.style.display='none';
+          });
+          m.appendChild(del);
+          keb.appendChild(b); keb.appendChild(m);
+          b.addEventListener('click', (e)=>{
+            e.stopPropagation();
+            m.style.display = m.style.display==='block' ? 'none' : 'block';
+            const close = (ev)=>{ if(!m.contains(ev.target) && ev.target!==b){ m.style.display='none'; document.removeEventListener('click', close); } };
+            setTimeout(()=>document.addEventListener('click', close),0);
+          });
+          // Append to row
+          const row = title.parentElement;
+          if(row && row.classList.contains('title-row')){
+            row.appendChild(acts); acts.appendChild(keb);
+          } else {
+            cEl.insertBefore(acts, cEl.firstChild.nextSibling);
+            acts.appendChild(keb);
+          }
+        }
+      });
+    }catch(e){}
+  };
+
+  // Re-render after wiring
+  const _all = window.renderAll;
+  window.renderAll = function(){ if(typeof _all==='function') _all(); window.renderExpenseCards && window.renderExpenseCards(); window.renderIncomeCards && window.renderIncomeCards(); window.renderDebtCards && window.renderDebtCards(); };
+})(); 

@@ -2962,3 +2962,85 @@ document.addEventListener('DOMContentLoaded', window.applyAppVersion);
   document.addEventListener('DOMContentLoaded', wireDebtDeletesStrict);
   document.addEventListener('change', (e)=>{ if(e.target && e.target.id==='monthSelect') wireDebtDeletesStrict(); });
 })();
+
+
+
+// v2.24.0: Sticky debt-transaction Delete (observer + scroll verify + delegated handler)
+(function(){
+  function cur(){ const sel=document.getElementById('monthSelect'); return sel && sel.value && data.months ? data.months[sel.value] : null; }
+  function getDebtWrap(){ return document.getElementById('debtCards'); }
+
+  // Add Delete button to a single row if missing
+  function addTxnDeleteToRow(row){
+    if(!row || row.querySelector('.txn-delete')) return;
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'txn-delete';
+    btn.textContent = 'Delete';
+    btn.style.marginLeft = '8px';
+    row.appendChild(btn);
+  }
+
+  // Ensure every visible row has a Delete control
+  function ensureTxnDeletes(){
+    const wrap = getDebtWrap(); if(!wrap) return;
+    const lists = wrap.querySelectorAll('.debt-transactions, #debtTransactions');
+    lists.forEach(list=>{
+      list.querySelectorAll('.txn-row, .debt-txn-row, li, .row').forEach(addTxnDeleteToRow);
+    });
+  }
+
+  // Delegated delete handler (stable; no per-row listeners)
+  function bindDelegatedDelete(){
+    const wrap = getDebtWrap(); if(!wrap) return;
+    if(wrap.__txnDelBound) return;
+    wrap.__txnDelBound = true;
+    wrap.addEventListener('click', function(e){
+      const del = e.target.closest && e.target.closest('.txn-delete');
+      if(!del) return;
+      const m = cur(); if(!m) return;
+      const row = del.closest('.txn-row, .debt-txn-row, li, .row'); if(!row) return;
+      const list = row.parentElement;
+      const rows = Array.from(list.querySelectorAll('.txn-row, .debt-txn-row, li, .row'));
+      const idx = rows.indexOf(row);
+      const arr = m.debtTransactions || m.debtTxns || [];
+      if(idx>=0 && arr[idx]){
+        if(confirm('Delete this debt transaction?')){
+          arr.splice(idx,1);
+          if(m.debtTransactions) m.debtTransactions = arr;
+          else if(m.debtTxns) m.debtTxns = arr;
+          try{ saveData(); }catch(_){}
+          try{ if(window.renderAll) window.renderAll(); }catch(_){}
+        }
+      }
+    }, true);
+  }
+
+  // Observe DOM changes inside Debts and re-ensure buttons (covers Safari scroll/virtualization)
+  function observeDebt(){
+    const wrap = getDebtWrap(); if(!wrap) return;
+    if(wrap.__txnObserver) return;
+    const mo = new MutationObserver(()=>ensureTxnDeletes());
+    mo.observe(wrap, {subtree:true, childList:true});
+    wrap.__txnObserver = mo;
+
+    // Also re-ensure on scroll (some mobile UIs virtualize rows)
+    wrap.addEventListener('scroll', ensureTxnDeletes, {passive:true});
+  }
+
+  // Hook into renders
+  const _old = window.renderAll;
+  window.renderAll = function(){
+    if(typeof _old === 'function') _old();
+    ensureTxnDeletes();
+    bindDelegatedDelete();
+    observeDebt();
+    if(window.__renderSummary) window.__renderSummary();
+  };
+  document.addEventListener('DOMContentLoaded', ()=>{
+    ensureTxnDeletes();
+    bindDelegatedDelete();
+    observeDebt();
+  });
+  document.addEventListener('change', (e)=>{ if(e.target && e.target.id==='monthSelect'){ ensureTxnDeletes(); }});
+})();

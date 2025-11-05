@@ -771,3 +771,21 @@ button, .icon-btn {
 #debtCards .title-row button.__sb-unknown, 
 #debtCards .title-row .ellipsis, 
 #debtCards .title-row .kebab { display:none !important; }
+
+
+
+/* v2.24.0: make txn Delete consistently visible and tappable */
+.txn-delete {
+  font-size: 14px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  border: 0;
+  background: #ef5350;
+  color: #fff;
+}
+.txn-row, .debt-txn-row, .debt-transactions li, .debt-transactions .row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}

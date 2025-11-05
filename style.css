@@ -789,3 +789,11 @@ button, .icon-btn {
   justify-content: space-between;
   gap: 8px;
 }
+
+
+/* v2.24.1 txn row resilient */
+.debt-transactions .row, .debt-transactions li, .txn-row, .debt-txn-row {
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+}

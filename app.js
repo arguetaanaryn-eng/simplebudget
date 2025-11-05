@@ -3044,3 +3044,144 @@ document.addEventListener('DOMContentLoaded', window.applyAppVersion);
   });
   document.addEventListener('change', (e)=>{ if(e.target && e.target.id==='monthSelect'){ ensureTxnDeletes(); }});
 })();
+
+
+
+// v2.24.1: window-scroll sticky deletes + post-delete auto-render
+(function(){
+  function cur(){ const sel=document.getElementById('monthSelect'); return sel && sel.value && data.months ? data.months[sel.value] : null; }
+  function getDebtWrap(){ return document.getElementById('debtCards'); }
+
+  function addTxnDeleteToRow(row){
+    if(!row || row.querySelector('.txn-delete')) return;
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'txn-delete';
+    btn.textContent = 'Delete';
+    btn.style.marginLeft = '8px';
+    row.appendChild(btn);
+  }
+
+  function ensureTxnDeletes(){
+    const wrap = getDebtWrap(); if(!wrap) return;
+    const lists = wrap.querySelectorAll('.debt-transactions, #debtTransactions, [data-debt-txns]');
+    lists.forEach(list=>{
+      const rows = list.querySelectorAll('.txn-row, .debt-txn-row, li, .row, [data-txn-row]');
+      rows.forEach(addTxnDeleteToRow);
+    });
+  }
+
+  // Delegated delete handler
+  function bindDelegatedDelete(){
+    const wrap = getDebtWrap(); if(!wrap) return;
+    if(wrap.__txnDelBound) return;
+    wrap.__txnDelBound = true;
+    wrap.addEventListener('click', function(e){
+      const del = e.target.closest && e.target.closest('.txn-delete');
+      if(!del) return;
+      const m = cur(); if(!m) return;
+      const row = del.closest('.txn-row, .debt-txn-row, li, .row, [data-txn-row]'); if(!row) return;
+      const list = row.parentElement;
+      const rows = Array.from(list.querySelectorAll('.txn-row, .debt-txn-row, li, .row, [data-txn-row]'));
+      const idx = rows.indexOf(row);
+      const arr = m.debtTransactions || m.debtTxns || [];
+      if(idx>=0 && arr[idx]){
+        if(confirm('Delete this debt transaction?')){
+          arr.splice(idx,1);
+          if(m.debtTransactions) m.debtTransactions = arr; else if(m.debtTxns) m.debtTxns = arr;
+          try{ saveData(); }catch(_){}
+          try{ if(window.renderAll) window.renderAll(); }catch(_){}
+        }
+      }
+    }, true);
+  }
+
+  // Post-render verification burst for Safari
+  let _burstTimer = null, _burstCount = 0;
+  function startVerifyBurst(){
+    if(_burstTimer) clearInterval(_burstTimer);
+    _burstCount = 0;
+    _burstTimer = setInterval(()=>{
+      ensureTxnDeletes();
+      _burstCount += 1;
+      if(_burstCount > 6){ // ~4–5s of checks
+        clearInterval(_burstTimer); _burstTimer = null;
+      }
+    }, 700);
+  }
+
+  // Auto re-render after any trash click in Expenses/Income/Debts if DOM didn't update
+  document.addEventListener('click', (e)=>{
+    const btn = e.target.closest && e.target.closest('.icon-btn.danger, .btn-delete, .delete, .trash');
+    if(!btn) return;
+    // schedule a render shortly after in case the view didn't update
+    setTimeout(()=>{ try{ if(window.renderAll) window.renderAll(); }catch(_){} }, 120);
+  }, true);
+
+  // Hook into renders
+  const _old = window.renderAll;
+  window.renderAll = function(){
+    if(typeof _old === 'function') _old();
+    ensureTxnDeletes();
+    bindDelegatedDelete();
+    startVerifyBurst();
+    if(window.__renderSummary) window.__renderSummary();
+  };
+
+  // Observe DOM changes within debts, plus window scroll/touch
+  function attachObservers(){
+    const wrap = getDebtWrap(); if(wrap && !wrap.__txnObserver){
+      const mo = new MutationObserver(()=>ensureTxnDeletes());
+      mo.observe(wrap, {subtree:true, childList:true});
+      wrap.__txnObserver = mo;
+    }
+    window.addEventListener('scroll', ensureTxnDeletes, {passive:true});
+    window.addEventListener('touchmove', ensureTxnDeletes, {passive:true});
+    window.addEventListener('orientationchange', ensureTxnDeletes, {passive:true});
+    document.addEventListener('visibilitychange', ensureTxnDeletes);
+  }
+
+  document.addEventListener('DOMContentLoaded', ()=>{
+    ensureTxnDeletes();
+    bindDelegatedDelete();
+    attachObservers();
+    startVerifyBurst();
+  });
+  document.addEventListener('change', (e)=>{
+    if(e.target && e.target.id==='monthSelect'){
+      ensureTxnDeletes();
+      startVerifyBurst();
+    }
+  });
+})();
+
+
+
+// v2.24.2: Desktop-friendly live summary refresh on input/change
+(function(){
+  let _sumTimer = null;
+  function scheduleSummaryRefresh(){
+    if(_sumTimer) clearTimeout(_sumTimer);
+    _sumTimer = setTimeout(()=>{
+      try{ if(typeof saveData==='function') saveData(); }catch(_){}
+      try{ if(window.__renderSummary) window.__renderSummary(); }catch(_){}
+    }, 120);
+  }
+  ['input','change','blur'].forEach(ev=>{
+    document.addEventListener(ev, (e)=>{
+      const el = e.target;
+      if(!el) return;
+      // Only react to edits inside the main budgeting sections
+      if(el.closest('#incomeCards, #expenseCards, #debtCards')){
+        scheduleSummaryRefresh();
+      }
+    }, true);
+  });
+
+  // Ensure renderAll always refreshes the summary afterward
+  const _old = window.renderAll;
+  window.renderAll = function(){
+    if(typeof _old==='function') _old();
+    try{ if(window.__renderSummary) window.__renderSummary(); }catch(_){}
+  };
+})();

@@ -315,3 +315,27 @@ h1,h2,h3{ color: var(--ink); letter-spacing: -0.01em; }
   .actions-primary{ flex:1 1 100%; }
   .app-header .actions .btn, .actions-primary .btn, .actions-more #moreBtn{ padding:10px 12px; font-size:14px; }
 }
+
+
+/* v2.20 Editable cards */
+.card-item.editable .card-row { align-items: center; }
+.card-item .value.editable{ border-bottom: 1px dashed rgba(2,6,23,.25); padding-bottom:2px; cursor: text; }
+.card-item .value input, .card-item .value select{
+  width: 100%; border:1px solid var(--line); border-radius:10px; padding:8px 10px;
+  font-size:14px; background:#fff; outline:none;
+}
+.card-item .row-actions{ display:flex; gap:8px; justify-content:flex-end; }
+
+/* show APR/Interest row badges */
+.badge{
+  display:inline-block; font-size:12px; padding:4px 8px; border-radius:999px;
+  background:#eef2ff; color:#1e3a8a; border:1px solid rgba(37,99,235,.25);
+}
+
+/* Toggle control for auto interest */
+.switch-inline{ display:flex; align-items:center; gap:8px; font-size:13px; color:var(--muted); }
+.switch-inline input{ width:18px; height:18px; }
+
+@media (max-width: 700px){
+  /* keep cards visible; tables hidden already in 2.18 */
+}

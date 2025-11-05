@@ -1206,3 +1206,197 @@ document.addEventListener('DOMContentLoaded', ()=>{
     if(!open){ setTimeout(()=>document.addEventListener('click', onDoc),0); }
   });
 });
+
+
+// v2.20: Editable mobile cards + visible Interest
+(function(){
+  function fmt(n){ if(n===undefined||n===null||n==='') return '0.00'; var v=Number(n)||0; return v.toLocaleString(undefined,{minimumFractionDigits:2, maximumFractionDigits:2}); }
+  function currentMonth(){
+    const sel = document.getElementById('monthSelect');
+    return sel && sel.value && data.months ? data.months[sel.value] : null;
+  }
+  function createEditableValue(initial, type, onCommit, placeholder){
+    const wrap = document.createElement('span');
+    wrap.className = 'value editable';
+    const input = document.createElement('input');
+    input.type = (type==='date') ? 'text' : 'number';
+    if(type==='date'){ input.placeholder = placeholder || 'MMM D, YYYY'; }
+    input.value = (initial ?? '') === '' ? '' : initial;
+    if(type!=='date'){ input.setAttribute('inputmode','decimal'); input.setAttribute('pattern','[0-9]*'); }
+    function commit(){
+      onCommit(input.value);
+    }
+    input.addEventListener('blur', commit);
+    input.addEventListener('keydown', (e)=>{ if(e.key==='Enter'){ input.blur(); } });
+    wrap.appendChild(input);
+    return wrap;
+  }
+
+  function renderExpenseCards(){
+    const cont = document.getElementById('expenseCards');
+    if(!cont) return;
+    cont.innerHTML = '';
+    const m = currentMonth();
+    if(!m || !Array.isArray(m.expenseGroups)) return;
+    m.expenseGroups.forEach((g,gi)=>{
+      const group = document.createElement('div');
+      group.className = 'card-group';
+      const gt = document.createElement('div');
+      gt.className = 'group-title'; gt.textContent = g.group || 'Group';
+      group.appendChild(gt);
+      (g.items||[]).forEach((it,ii)=>{
+        const c = document.createElement('div');
+        c.className = 'card-item editable';
+        const title = document.createElement('div');
+        title.className = 'title';
+        title.textContent = it.name || 'Item';
+        c.appendChild(title);
+
+        // Planned
+        const row1 = document.createElement('div'); row1.className='card-row';
+        const l1 = document.createElement('span'); l1.className='label'; l1.textContent='Planned';
+        const v1 = document.createElement('span'); v1.className='value editable'; v1.textContent='$'+fmt(it.planned);
+        v1.addEventListener('click', ()=>{
+          const rep = createEditableValue(it.planned,'number',(val)=>{
+            it.planned = Number(val)||0; saveData(); renderExpenseCards();
+          });
+          v1.replaceWith(rep.querySelector('input').parentElement); rep.querySelector('input').focus();
+        });
+        row1.appendChild(l1); row1.appendChild(v1);
+
+        // Actual
+        const row2 = document.createElement('div'); row2.className='card-row';
+        const l2 = document.createElement('span'); l2.className='label'; l2.textContent='Actual';
+        const v2 = document.createElement('span'); v2.className='value editable'; v2.textContent='$'+fmt(it.actual);
+        v2.addEventListener('click', ()=>{
+          const rep = createEditableValue(it.actual,'number',(val)=>{
+            it.actual = Number(val)||0; saveData(); renderExpenseCards();
+          });
+          v2.replaceWith(rep.querySelector('input').parentElement); rep.querySelector('input').focus();
+        });
+        row2.appendChild(l2); row2.appendChild(v2);
+
+        // Date
+        const row3 = document.createElement('div'); row3.className='card-row';
+        const l3 = document.createElement('span'); l3.className='label'; l3.textContent='Date';
+        const v3 = document.createElement('span'); v3.className='value editable'; v3.textContent = it.date || '—';
+        v3.addEventListener('click', ()=>{
+          const rep = createEditableValue(it.date,'date',(val)=>{
+            it.date = val; saveData(); renderExpenseCards();
+          }, 'Nov 4, 2025');
+          v3.replaceWith(rep.querySelector('input').parentElement); rep.querySelector('input').focus();
+        });
+        row3.appendChild(l3); row3.appendChild(v3);
+
+        c.appendChild(row1); c.appendChild(row2); c.appendChild(row3);
+        group.appendChild(c);
+      });
+      cont.appendChild(group);
+    });
+  }
+
+  function monthlyInterest(d){
+    const apr = Number(d.apr)||0;
+    const bal = Number(d.balance)||0;
+    if(d.autoInterest){ return bal * (apr/100) / 12; }
+    // manual mode
+    return Number(d.interest)||0;
+  }
+
+  function renderDebtCards(){
+    const cont = document.getElementById('debtCards');
+    if(!cont) return;
+    cont.innerHTML = '';
+    const m = currentMonth();
+    if(!m || !Array.isArray(m.debts)) return;
+    (m.debts||[]).forEach((d,idx)=>{
+      const c = document.createElement('div');
+      c.className = 'card-item editable';
+      const title = document.createElement('div');
+      title.className = 'title'; title.textContent = d.name || 'Debt';
+      c.appendChild(title);
+
+      // Balance (read-only here)
+      const rowBal = document.createElement('div'); rowBal.className='card-row';
+      rowBal.innerHTML = '<span class="label">Balance</span><span class="value">$'+fmt(d.balance)+'</span>';
+
+      // Planned payment (editable)
+      const rowPl = document.createElement('div'); rowPl.className='card-row';
+      const lPl = document.createElement('span'); lPl.className='label'; lPl.textContent='Planned';
+      const vPl = document.createElement('span'); vPl.className='value editable'; vPl.textContent='$'+fmt(d.plannedPayment);
+      vPl.addEventListener('click', ()=>{
+        const rep = createEditableValue(d.plannedPayment,'number',(val)=>{
+          d.plannedPayment = Number(val)||0; saveData(); renderDebtCards();
+        });
+        vPl.replaceWith(rep.querySelector('input').parentElement); rep.querySelector('input').focus();
+      });
+      rowPl.appendChild(lPl); rowPl.appendChild(vPl);
+
+      // Actual payment (editable)
+      const rowAc = document.createElement('div'); rowAc.className='card-row';
+      const lAc = document.createElement('span'); lAc.className='label'; lAc.textContent='Actual';
+      const vAc = document.createElement('span'); vAc.className='value editable'; vAc.textContent='$'+fmt(d.actualPayment);
+      vAc.addEventListener('click', ()=>{
+        const rep = createEditableValue(d.actualPayment,'number',(val)=>{
+          d.actualPayment = Number(val)||0; saveData(); renderDebtCards();
+        });
+        vAc.replaceWith(rep.querySelector('input').parentElement); rep.querySelector('input').focus();
+      });
+      rowAc.appendChild(lAc); rowAc.appendChild(vAc);
+
+      // Paid On (editable)
+      const rowDt = document.createElement('div'); rowDt.className='card-row';
+      const lDt = document.createElement('span'); lDt.className='label'; lDt.textContent='Paid On';
+      const vDt = document.createElement('span'); vDt.className='value editable'; vDt.textContent = d.paidOn || '—';
+      vDt.addEventListener('click', ()=>{
+        const rep = createEditableValue(d.paidOn,'date',(val)=>{
+          d.paidOn = val; saveData(); renderDebtCards();
+        }, 'Nov 15, 2025');
+        vDt.replaceWith(rep.querySelector('input').parentElement); rep.querySelector('input').focus();
+      });
+      rowDt.appendChild(lDt); rowDt.appendChild(vDt);
+
+      // APR (editable) + Auto Interest toggle
+      const rowApr = document.createElement('div'); rowApr.className='card-row';
+      const lApr = document.createElement('span'); lApr.className='label'; lApr.textContent='APR %';
+      const vApr = document.createElement('span'); vApr.className='value editable'; vApr.textContent = (Number(d.apr)||0).toString();
+      vApr.addEventListener('click', ()=>{
+        const rep = createEditableValue(d.apr,'number',(val)=>{
+          d.apr = Number(val)||0; saveData(); renderDebtCards();
+        });
+        vApr.replaceWith(rep.querySelector('input').parentElement); rep.querySelector('input').focus();
+      });
+      rowApr.appendChild(lApr); rowApr.appendChild(vApr);
+
+      const rowAuto = document.createElement('div'); rowAuto.className='switch-inline';
+      const chk = document.createElement('input'); chk.type='checkbox'; chk.checked=!!d.autoInterest;
+      const lab = document.createElement('label'); lab.textContent='Auto-calc Interest';
+      rowAuto.appendChild(chk); rowAuto.appendChild(lab);
+      chk.addEventListener('change', ()=>{ d.autoInterest = !!chk.checked; saveData(); renderDebtCards(); });
+
+      // Interest (computed or manual display)
+      const rowInt = document.createElement('div'); rowInt.className='card-row';
+      const lInt = document.createElement('span'); lInt.className='label'; lInt.textContent='Interest (this month)';
+      const interestVal = monthlyInterest(d);
+      const vInt = document.createElement('span'); vInt.className='value'; vInt.innerHTML = '<span class="badge">$'+fmt(interestVal)+'</span>';
+      rowInt.appendChild(lInt); rowInt.appendChild(vInt);
+
+      c.appendChild(rowBal); c.appendChild(rowPl); c.appendChild(rowAc); c.appendChild(rowDt);
+      c.appendChild(rowApr); c.appendChild(rowAuto); c.appendChild(rowInt);
+
+      cont.appendChild(c);
+    });
+  }
+
+  function renderMobileCards(){ renderExpenseCards(); renderDebtCards(); }
+  // Hook into existing renderAll
+  (function(){
+    const old = window.renderAll;
+    window.renderAll = function(){ if(typeof old==='function') old(); renderMobileCards(); };
+  })();
+  document.addEventListener('DOMContentLoaded', renderMobileCards);
+  document.addEventListener('change', function(e){
+    if(e.target && e.target.id==='monthSelect'){ renderMobileCards(); }
+  });
+  window.addEventListener('resize', renderMobileCards);
+})();

@@ -1860,3 +1860,253 @@ window.__commitAndRerender = function(){
   const _all = window.renderAll;
   window.renderAll = function(){ if(typeof _all==='function') _all(); window.renderExpenseCards && window.renderExpenseCards(); window.renderIncomeCards && window.renderIncomeCards(); window.renderDebtCards && window.renderDebtCards(); };
 })(); 
+
+
+// v2.22.1: Robust inline rename/delete by building controls directly in renderers
+(function(){
+  function fmt(n){ if(n===undefined||n===null||n==='') return '0.00'; var v=Number(n)||0; return v.toLocaleString(undefined,{minimumFractionDigits:2, maximumFractionDigits:2}); }
+  function monthObj(){
+    const sel = document.getElementById('monthSelect');
+    return sel && sel.value && data.months ? data.months[sel.value] : null;
+  }
+  function promptText(title, initial){
+    const val = window.prompt(title, initial==null? '': String(initial));
+    if(val===null) return null;
+    return val.trim();
+  }
+
+  // Helper: editable span generator
+  function editableSpan(initial, type, onCommit, placeholder){
+    const span = document.createElement('span');
+    span.className = 'value editable';
+    span.textContent = (type==='number') ? ('$'+fmt(initial)) : (initial || '—');
+    span.addEventListener('click', ()=>{
+      const input = document.createElement('input');
+      input.type = (type==='date') ? 'text' : 'number';
+      if(type!=='date'){ input.setAttribute('inputmode','decimal'); input.setAttribute('pattern','[0-9]*'); }
+      if(type==='date' && placeholder){ input.placeholder = placeholder; }
+      input.value = (initial ?? '') === '' ? '' : initial;
+      function commit(){ onCommit(input.value); window.__commitAndRerender ? __commitAndRerender() : (saveData(), renderAll&&renderAll()); }
+      input.addEventListener('blur', commit);
+      input.addEventListener('keydown', (e)=>{ if(e.key==='Enter'){ input.blur(); } });
+      span.replaceWith(input);
+      input.focus();
+    });
+    return span;
+  }
+
+  // EXPENSES: full re-render with title row + kebab menu + inline edit
+  window.renderExpenseCards = function(){
+    const cont = document.getElementById('expenseCards');
+    const m = monthObj();
+    if(!cont || !m) return;
+    cont.innerHTML='';
+    (m.expenseGroups||[]).forEach((g, gi)=>{
+      const group = document.createElement('div');
+      group.className = 'card-group';
+
+      const header = document.createElement('div');
+      header.className = 'title-row';
+      const title = document.createElement('div');
+      title.className = 'title editable';
+      title.textContent = g.group || 'Group';
+      title.addEventListener('click', ()=>{
+        const next = promptText('Rename group', g.group||'');
+        if(next){ g.group = next; saveData(); renderAll&&renderAll(); }
+      });
+
+      const actions = document.createElement('div'); actions.className='card-actions';
+      const keb = document.createElement('div'); keb.className='kebab';
+      const b = document.createElement('button'); b.className='icon-btn'; b.textContent='⋯';
+      const menu = document.createElement('div'); menu.className='kebab-menu';
+      const rn = document.createElement('button'); rn.textContent='Rename Group';
+      rn.addEventListener('click', ()=>{ const next = promptText('Rename group', g.group||''); if(next){ g.group=next; saveData(); renderAll&&renderAll(); } menu.style.display='none'; });
+      const del = document.createElement('button'); del.textContent='Delete Group';
+      del.addEventListener('click', ()=>{ if(confirm('Delete group and all items?')){ (m.expenseGroups||[]).splice(gi,1); saveData(); renderAll&&renderAll(); } menu.style.display='none'; });
+      menu.appendChild(rn); menu.appendChild(del);
+      keb.appendChild(b); keb.appendChild(menu);
+      b.addEventListener('click', (e)=>{
+        e.stopPropagation();
+        menu.style.display = menu.style.display==='block' ? 'none' : 'block';
+        const close=(ev)=>{ if(!menu.contains(ev.target) && ev.target!==b){ menu.style.display='none'; document.removeEventListener('click', close); } };
+        setTimeout(()=>document.addEventListener('click', close),0);
+      });
+      actions.appendChild(keb);
+
+      header.appendChild(title); header.appendChild(actions);
+      group.appendChild(header);
+
+      (g.items||[]).forEach((it, ii)=>{
+        const c = document.createElement('div'); c.className='card-item editable';
+        // title row for item
+        const tr = document.createElement('div'); tr.className='title-row';
+        const tt = document.createElement('div'); tt.className='title editable'; tt.textContent = it.name || 'Item';
+        tt.addEventListener('click', ()=>{
+          const next = promptText('Rename item', it.name||''); if(next){ it.name = next; saveData(); renderAll&&renderAll(); }
+        });
+        const acts = document.createElement('div'); acts.className='card-actions';
+        const keb2 = document.createElement('div'); keb2.className='kebab';
+        const bb = document.createElement('button'); bb.className='icon-btn'; bb.textContent='⋯';
+        const mm = document.createElement('div'); mm.className='kebab-menu';
+        const rn2 = document.createElement('button'); rn2.textContent='Rename Item';
+        rn2.addEventListener('click', ()=>{ const next = promptText('Rename item', it.name||''); if(next){ it.name=next; saveData(); renderAll&&renderAll(); } mm.style.display='none'; });
+        const del2 = document.createElement('button'); del2.textContent='Delete Item';
+        del2.addEventListener('click', ()=>{ if(confirm('Delete this item?')){ g.items.splice(ii,1); saveData(); renderAll&&renderAll(); } mm.style.display='none'; });
+        mm.appendChild(rn2); mm.appendChild(del2);
+        keb2.appendChild(bb); keb2.appendChild(mm);
+        bb.addEventListener('click', (e)=>{
+          e.stopPropagation();
+          mm.style.display = mm.style.display==='block' ? 'none' : 'block';
+          const close=(ev)=>{ if(!mm.contains(ev.target) && ev.target!==bb){ mm.style.display='none'; document.removeEventListener('click', close); } };
+          setTimeout(()=>document.addEventListener('click', close),0);
+        });
+        acts.appendChild(keb2);
+        tr.appendChild(tt); tr.appendChild(acts);
+        c.appendChild(tr);
+
+        // planned
+        const r1 = document.createElement('div'); r1.className='card-row';
+        const l1 = document.createElement('span'); l1.className='label'; l1.textContent='Planned';
+        const v1 = editableSpan(it.planned,'number',(val)=>{ it.planned = Number(val)||0; }, null);
+        r1.appendChild(l1); r1.appendChild(v1);
+        // actual
+        const r2 = document.createElement('div'); r2.className='card-row';
+        const l2 = document.createElement('span'); l2.className='label'; l2.textContent='Actual';
+        const v2 = editableSpan(it.actual,'number',(val)=>{ it.actual = Number(val)||0; }, null);
+        r2.appendChild(l2); r2.appendChild(v2);
+        // date
+        const r3 = document.createElement('div'); r3.className='card-row';
+        const l3 = document.createElement('span'); l3.className='label'; l3.textContent='Date';
+        const v3 = editableSpan(it.date,'date',(val)=>{ it.date = val; }, 'Nov 4, 2025');
+        r3.appendChild(l3); r3.appendChild(v3);
+
+        c.appendChild(r1); c.appendChild(r2); c.appendChild(r3);
+        group.appendChild(c);
+      });
+      cont.appendChild(group);
+    });
+  };
+
+  // INCOME: render with title rename and delete
+  window.renderIncomeCards = function(){
+    const cont = document.getElementById('incomeCards');
+    const m = monthObj();
+    if(!cont || !m) return;
+    cont.innerHTML='';
+    const group = document.createElement('div'); group.className='card-group';
+    const header = document.createElement('div'); header.className='group-title'; header.textContent='Income';
+    group.appendChild(header);
+    (m.income||[]).forEach((row, idx)=>{
+      const c = document.createElement('div'); c.className='card-item editable';
+      const tr = document.createElement('div'); tr.className='title-row';
+      const tt = document.createElement('div'); tt.className='title editable'; tt.textContent=row.name||'Income';
+      tt.addEventListener('click', ()=>{
+        const next = promptText('Rename income', row.name||''); if(next){ row.name=next; saveData(); renderAll&&renderAll(); }
+      });
+      const acts = document.createElement('div'); acts.className='card-actions';
+      const keb = document.createElement('div'); keb.className='kebab';
+      const b = document.createElement('button'); b.className='icon-btn'; b.textContent='⋯';
+      const menu = document.createElement('div'); menu.className='kebab-menu';
+      const del = document.createElement('button'); del.textContent='Delete Income';
+      del.addEventListener('click', ()=>{ if(confirm('Delete this income line?')){ m.income.splice(idx,1); saveData(); renderAll&&renderAll(); } menu.style.display='none'; });
+      menu.appendChild(del);
+      keb.appendChild(b); keb.appendChild(menu);
+      b.addEventListener('click', (e)=>{
+        e.stopPropagation();
+        menu.style.display = menu.style.display==='block' ? 'none' : 'block';
+        const close=(ev)=>{ if(!menu.contains(ev.target) && ev.target!==b){ menu.style.display='none'; document.removeEventListener('click', close); } };
+        setTimeout(()=>document.addEventListener('click', close),0);
+      });
+      acts.appendChild(keb);
+      tr.appendChild(tt); tr.appendChild(acts);
+      c.appendChild(tr);
+
+      const r1 = document.createElement('div'); r1.className='card-row';
+      const l1 = document.createElement('span'); l1.className='label'; l1.textContent='Planned';
+      const v1 = editableSpan(row.planned,'number',(val)=>{ row.planned=Number(val)||0; }, null);
+      r1.appendChild(l1); r1.appendChild(v1);
+
+      const r2 = document.createElement('div'); r2.className='card-row';
+      const l2 = document.createElement('span'); l2.className='label'; l2.textContent='Actual';
+      const v2 = editableSpan(row.actual,'number',(val)=>{ row.actual=Number(val)||0; }, null);
+      r2.appendChild(l2); r2.appendChild(v2);
+
+      c.appendChild(r1); c.appendChild(r2);
+      group.appendChild(c);
+    });
+    cont.appendChild(group);
+  };
+
+  // DEBTS: render with title rename/delete and editable balance
+  window.renderDebtCards = function(){
+    const cont = document.getElementById('debtCards');
+    const m = monthObj();
+    if(!cont || !m) return;
+    cont.innerHTML='';
+    (m.debts||[]).forEach((d, idx)=>{
+      const c = document.createElement('div'); c.className='card-item editable';
+
+      const tr = document.createElement('div'); tr.className='title-row';
+      const tt = document.createElement('div'); tt.className='title editable'; tt.textContent = d.name || 'Debt';
+      tt.addEventListener('click', ()=>{ const n = promptText('Rename debt', d.name||''); if(n){ d.name=n; saveData(); renderAll&&renderAll(); } });
+      const acts = document.createElement('div'); acts.className='card-actions';
+      const keb = document.createElement('div'); keb.className='kebab';
+      const b = document.createElement('button'); b.className='icon-btn'; b.textContent='⋯';
+      const menu = document.createElement('div'); menu.className='kebab-menu';
+      const del = document.createElement('button'); del.textContent='Delete Debt';
+      del.addEventListener('click', ()=>{ if(confirm('Delete this debt line?')){ m.debts.splice(idx,1); saveData(); renderAll&&renderAll(); } menu.style.display='none'; });
+      menu.appendChild(del);
+      keb.appendChild(b); keb.appendChild(menu);
+      b.addEventListener('click', (e)=>{
+        e.stopPropagation();
+        menu.style.display = menu.style.display==='block' ? 'none' : 'block';
+        const close=(ev)=>{ if(!menu.contains(ev.target) && ev.target!==b){ menu.style.display='none'; document.removeEventListener('click', close); } };
+        setTimeout(()=>document.addEventListener('click', close),0);
+      });
+      acts.appendChild(keb);
+      tr.appendChild(tt); tr.appendChild(acts);
+      c.appendChild(tr);
+
+      const rBal = document.createElement('div'); rBal.className='card-row';
+      const lBal = document.createElement('span'); lBal.className='label'; lBal.textContent='Balance';
+      const vBal = editableSpan(d.balance,'number',(val)=>{ d.balance=Number(val)||0; }, null);
+      rBal.appendChild(lBal); rBal.appendChild(vBal);
+
+      const rPl = document.createElement('div'); rPl.className='card-row';
+      const lPl = document.createElement('span'); lPl.className='label'; lPl.textContent='Planned';
+      const vPl = editableSpan(d.plannedPayment,'number',(val)=>{ d.plannedPayment=Number(val)||0; }, null);
+      rPl.appendChild(lPl); rPl.appendChild(vPl);
+
+      const rAc = document.createElement('div'); rAc.className='card-row';
+      const lAc = document.createElement('span'); lAc.className='label'; lAc.textContent='Actual';
+      const vAc = editableSpan(d.actualPayment,'number',(val)=>{ d.actualPayment=Number(val)||0; }, null);
+      rAc.appendChild(lAc); rAc.appendChild(vAc);
+
+      const rDt = document.createElement('div'); rDt.className='card-row';
+      const lDt = document.createElement('span'); lDt.className='label'; lDt.textContent='Paid On';
+      const vDt = editableSpan(d.paidOn,'date',(val)=>{ d.paidOn=val; }, 'Nov 15, 2025');
+      rDt.appendChild(lDt); rDt.appendChild(vDt);
+
+      const rApr = document.createElement('div'); rApr.className='card-row';
+      const lApr = document.createElement('span'); lApr.className='label'; lApr.textContent='APR %';
+      const vApr = editableSpan(d.apr,'number',(val)=>{ d.apr=Number(val)||0; }, null);
+      rApr.appendChild(lApr); rApr.appendChild(vApr);
+
+      const rInt = document.createElement('div'); rInt.className='card-row';
+      const lInt = document.createElement('span'); lInt.className='label'; lInt.textContent='Interest (this month)';
+      const interest = (d.autoInterest? (Number(d.balance)||0)*(Number(d.apr)||0)/100/12 : (Number(d.interest)||0));
+      const vInt = document.createElement('span'); vInt.className='value'; vInt.textContent = '$'+fmt(interest);
+      rInt.appendChild(lInt); rInt.appendChild(vInt);
+
+      c.appendChild(rBal); c.appendChild(rPl); c.appendChild(rAc); c.appendChild(rDt); c.appendChild(rApr); c.appendChild(rInt);
+      cont.appendChild(c);
+    });
+  };
+
+  // Ensure global render calls our overrides
+  const _renderAll = window.renderAll;
+  window.renderAll = function(){ if(typeof _renderAll==='function') _renderAll(); window.renderExpenseCards(); window.renderIncomeCards(); window.renderDebtCards(); };
+  document.addEventListener('DOMContentLoaded', ()=>{ window.renderExpenseCards(); window.renderIncomeCards(); window.renderDebtCards(); });
+  document.addEventListener('change', (e)=>{ if(e.target && e.target.id==='monthSelect'){ window.renderExpenseCards(); window.renderIncomeCards(); window.renderDebtCards(); }});
+  window.addEventListener('resize', ()=>{ window.renderExpenseCards(); window.renderIncomeCards(); window.renderDebtCards(); });
+})();

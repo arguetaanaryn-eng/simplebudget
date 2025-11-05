@@ -402,3 +402,9 @@ body.keyboard-open{
 
 .card-item .title-row{ display:flex; align-items:center; gap:8px; }
 .card-item .title.editable{ border-bottom: 1px dashed rgba(2,6,23,.25); cursor:text; }
+
+
+/* v2.22.1: ensure title row layout for edit/menus */
+.card-item .title-row{ display:flex; align-items:center; justify-content:space-between; gap:8px; }
+.card-item .title-row .title{ font-weight:600; font-size:16px; }
+.card-item .title-row .title.editable{ border-bottom:1px dashed rgba(2,6,23,.25); cursor:text; }

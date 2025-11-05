@@ -2503,7 +2503,7 @@ window.__commitAndRerender = function(){
 
 
 // v2.23.3: single source of truth for version
-window.APP_VERSION = "v2.23.4";
+window.APP_VERSION = "v2.23.5";
 window.applyAppVersion = function(){
   try{
     document.querySelectorAll('.app-version').forEach(el=>{ el.textContent = window.APP_VERSION; });
@@ -2513,4 +2513,89 @@ document.addEventListener('DOMContentLoaded', window.applyAppVersion);
 (function(){
   const _all = window.renderAll;
   window.renderAll = function(){ if(typeof _all==='function') _all(); window.applyAppVersion && window.applyAppVersion(); };
+})();
+
+
+
+// v2.23.5: sweep orphan kebabs, add robust debt delete + debt txn delete
+(function(){
+  function cur(){ const sel=document.getElementById('monthSelect'); return sel&&sel.value&&data.months?data.months[sel.value]:null; }
+
+  function sweepKebabs(){
+    document.querySelectorAll('.kebab').forEach(k=>{
+      const hasMenu = !!k.querySelector('.kebab-menu');
+      const btn = k.querySelector('.icon-btn');
+      if(!hasMenu){
+        k.classList.add('orphan');
+        if(btn) btn.disabled = true;
+        k.style.display = 'none';
+      }
+    });
+  }
+
+  function wireDebtDeletes(){
+    const m = cur(); if(!m) return;
+    const wrap = document.getElementById('debtCards'); if(!wrap) return;
+    const cards = wrap.querySelectorAll('.card-item');
+    cards.forEach((c, idx)=>{
+      // Inject a dedicated delete button if not present
+      if(!c.querySelector('.debt-del-btn')){
+        let header = c.querySelector('.title-row') || c.querySelector('.card-head') || c;
+        const btn = document.createElement('button');
+        btn.className = 'icon-btn danger debt-del-btn';
+        btn.title = 'Delete Debt';
+        btn.innerHTML = '<span class="ic-trash" style="width:16px;height:16px;"></span>';
+        btn.addEventListener('click', ()=>{
+          if(!m.debts || !m.debts[idx]) return;
+          const name = m.debts[idx].name || 'this debt';
+          if(confirm(`Delete "${name}"?`)){
+            m.debts.splice(idx,1);
+            try{ saveData(); }catch(e){}
+            try{ if(window.renderAll) window.renderAll(); }catch(e){}
+          }
+        });
+        // Right side of header
+        header.appendChild(btn);
+        header.style.display = 'flex';
+        header.style.justifyContent = 'space-between';
+        header.style.alignItems = 'center';
+      }
+    });
+
+    // If debt transactions are rendered, attach delete per row
+    const txnLists = wrap.querySelectorAll('.debt-transactions, #debtTransactions');
+    txnLists.forEach(list=>{
+      list.querySelectorAll('.txn-row, .debt-txn-row').forEach((row, ridx)=>{
+        if(row.querySelector('.txn-delete')) return;
+        const del = document.createElement('span');
+        del.className = 'txn-delete';
+        del.textContent = 'Delete';
+        del.style.marginLeft = '8px';
+        del.addEventListener('click', ()=>{
+          const arr = m.debtTransactions || m.debtTxns || [];
+          if(arr[ridx]){
+            if(confirm('Delete this debt transaction?')){
+              arr.splice(ridx,1);
+              // write back to the canonical field if needed
+              if(m.debtTransactions) m.debtTransactions = arr;
+              else if(m.debtTxns) m.debtTxns = arr;
+              try{ saveData(); }catch(e){}
+              try{ if(window.renderAll) window.renderAll(); }catch(e){}
+            }
+          }
+        });
+        row.appendChild(del);
+      });
+    });
+  }
+
+  const _oldAll = window.renderAll;
+  window.renderAll = function(){
+    if(typeof _oldAll === 'function') _oldAll();
+    sweepKebabs();
+    wireDebtDeletes();
+    if(window.__renderSummary) window.__renderSummary();
+  };
+  document.addEventListener('DOMContentLoaded', ()=>{ sweepKebabs(); wireDebtDeletes(); });
+  document.addEventListener('change', (e)=>{ if(e.target && e.target.id==='monthSelect'){ sweepKebabs(); wireDebtDeletes(); }});
 })();

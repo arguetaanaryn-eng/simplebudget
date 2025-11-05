@@ -1258,7 +1258,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
         const v1 = document.createElement('span'); v1.className='value editable'; v1.textContent='$'+fmt(it.planned);
         v1.addEventListener('click', ()=>{
           const rep = createEditableValue(it.planned,'number',(val)=>{
-            it.planned = Number(val)||0; saveData(); renderExpenseCards();
+            it.planned = Number(val)||0; __commitAndRerender();
           });
           v1.replaceWith(rep.querySelector('input').parentElement); rep.querySelector('input').focus();
         });
@@ -1270,7 +1270,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
         const v2 = document.createElement('span'); v2.className='value editable'; v2.textContent='$'+fmt(it.actual);
         v2.addEventListener('click', ()=>{
           const rep = createEditableValue(it.actual,'number',(val)=>{
-            it.actual = Number(val)||0; saveData(); renderExpenseCards();
+            it.actual = Number(val)||0; __commitAndRerender();
           });
           v2.replaceWith(rep.querySelector('input').parentElement); rep.querySelector('input').focus();
         });
@@ -1282,7 +1282,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
         const v3 = document.createElement('span'); v3.className='value editable'; v3.textContent = it.date || '—';
         v3.addEventListener('click', ()=>{
           const rep = createEditableValue(it.date,'date',(val)=>{
-            it.date = val; saveData(); renderExpenseCards();
+            it.date = val; __commitAndRerender();
           }, 'Nov 4, 2025');
           v3.replaceWith(rep.querySelector('input').parentElement); rep.querySelector('input').focus();
         });
@@ -1326,7 +1326,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
       const vPl = document.createElement('span'); vPl.className='value editable'; vPl.textContent='$'+fmt(d.plannedPayment);
       vPl.addEventListener('click', ()=>{
         const rep = createEditableValue(d.plannedPayment,'number',(val)=>{
-          d.plannedPayment = Number(val)||0; saveData(); renderDebtCards();
+          d.plannedPayment = Number(val)||0; __commitAndRerender();
         });
         vPl.replaceWith(rep.querySelector('input').parentElement); rep.querySelector('input').focus();
       });
@@ -1338,7 +1338,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
       const vAc = document.createElement('span'); vAc.className='value editable'; vAc.textContent='$'+fmt(d.actualPayment);
       vAc.addEventListener('click', ()=>{
         const rep = createEditableValue(d.actualPayment,'number',(val)=>{
-          d.actualPayment = Number(val)||0; saveData(); renderDebtCards();
+          d.actualPayment = Number(val)||0; __commitAndRerender();
         });
         vAc.replaceWith(rep.querySelector('input').parentElement); rep.querySelector('input').focus();
       });
@@ -1350,7 +1350,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
       const vDt = document.createElement('span'); vDt.className='value editable'; vDt.textContent = d.paidOn || '—';
       vDt.addEventListener('click', ()=>{
         const rep = createEditableValue(d.paidOn,'date',(val)=>{
-          d.paidOn = val; saveData(); renderDebtCards();
+          d.paidOn = val; __commitAndRerender();
         }, 'Nov 15, 2025');
         vDt.replaceWith(rep.querySelector('input').parentElement); rep.querySelector('input').focus();
       });
@@ -1362,7 +1362,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
       const vApr = document.createElement('span'); vApr.className='value editable'; vApr.textContent = (Number(d.apr)||0).toString();
       vApr.addEventListener('click', ()=>{
         const rep = createEditableValue(d.apr,'number',(val)=>{
-          d.apr = Number(val)||0; saveData(); renderDebtCards();
+          d.apr = Number(val)||0; __commitAndRerender();
         });
         vApr.replaceWith(rep.querySelector('input').parentElement); rep.querySelector('input').focus();
       });
@@ -1372,7 +1372,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
       const chk = document.createElement('input'); chk.type='checkbox'; chk.checked=!!d.autoInterest;
       const lab = document.createElement('label'); lab.textContent='Auto-calc Interest';
       rowAuto.appendChild(chk); rowAuto.appendChild(lab);
-      chk.addEventListener('change', ()=>{ d.autoInterest = !!chk.checked; saveData(); renderDebtCards(); });
+      chk.addEventListener('change', ()=>{ d.autoInterest = !!chk.checked; __commitAndRerender(); });
 
       // Interest (computed or manual display)
       const rowInt = document.createElement('div'); rowInt.className='card-row';
@@ -1444,7 +1444,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
       const l1 = document.createElement('span'); l1.className='label'; l1.textContent='Planned';
       const v1 = document.createElement('span'); v1.className='value editable'; v1.textContent='$'+fmt(row.planned);
       v1.addEventListener('click', ()=>{
-        const rep = createEditableValue(row.planned,'number',(val)=>{ row.planned = Number(val)||0; saveData(); renderIncomeCards(); });
+        const rep = createEditableValue(row.planned,'number',(val)=>{ row.planned = Number(val)||0; __commitAndRerender(); });
         v1.replaceWith(rep.querySelector('input').parentElement); rep.querySelector('input').focus();
       });
       r1.appendChild(l1); r1.appendChild(v1);
@@ -1453,7 +1453,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
       const l2 = document.createElement('span'); l2.className='label'; l2.textContent='Actual';
       const v2 = document.createElement('span'); v2.className='value editable'; v2.textContent='$'+fmt(row.actual);
       v2.addEventListener('click', ()=>{
-        const rep = createEditableValue(row.actual,'number',(val)=>{ row.actual = Number(val)||0; saveData(); renderIncomeCards(); });
+        const rep = createEditableValue(row.actual,'number',(val)=>{ row.actual = Number(val)||0; __commitAndRerender(); });
         v2.replaceWith(rep.querySelector('input').parentElement); rep.querySelector('input').focus();
       });
       r2.appendChild(l2); r2.appendChild(v2);
@@ -1476,7 +1476,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
       valSpan.classList.add('editable');
       valSpan.addEventListener('click', ()=>{
         const rep = createEditableValue(d.balance,'number',(val)=>{
-          d.balance = Number(val)||0; saveData(); renderDebtCards(); // re-render original function
+          d.balance = Number(val)||0; __commitAndRerender(); // re-render original function
         });
         valSpan.replaceWith(rep.querySelector('input').parentElement); rep.querySelector('input').focus();
       });
@@ -1514,7 +1514,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
           const l1 = document.createElement('span'); l1.className='label'; l1.textContent='Amount';
           const v1 = document.createElement('span'); v1.className='value editable'; v1.textContent='$'+fmt(tx.amount);
           v1.addEventListener('click', ()=>{
-            const rep = createEditableValue(tx.amount,'number',(val)=>{ tx.amount = Number(val)||0; saveData(); renderTransactionCards(); });
+            const rep = createEditableValue(tx.amount,'number',(val)=>{ tx.amount = Number(val)||0; __commitAndRerender(); });
             v1.replaceWith(rep.querySelector('input').parentElement); rep.querySelector('input').focus();
           });
           r1.appendChild(l1); r1.appendChild(v1);
@@ -1524,7 +1524,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
           const l2 = document.createElement('span'); l2.className='label'; l2.textContent='Date';
           const v2 = document.createElement('span'); v2.className='value editable'; v2.textContent = tx.date || '—';
           v2.addEventListener('click', ()=>{
-            const rep = createEditableValue(tx.date,'date',(val)=>{ tx.date = val; saveData(); renderTransactionCards(); }, 'Nov 4, 2025');
+            const rep = createEditableValue(tx.date,'date',(val)=>{ tx.date = val; __commitAndRerender(); }, 'Nov 4, 2025');
             v2.replaceWith(rep.querySelector('input').parentElement); rep.querySelector('input').focus();
           });
           r2.appendChild(l2); r2.appendChild(v2);
@@ -1534,7 +1534,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
           const l3 = document.createElement('span'); l3.className='label'; l3.textContent='Category';
           const v3 = document.createElement('span'); v3.className='value editable'; v3.textContent = tx.group || (tx.category||'—');
           v3.addEventListener('click', ()=>{
-            const rep = createEditableValue(tx.group || tx.category,'date',(val)=>{ if('group' in tx) tx.group = val; else tx.category = val; saveData(); renderTransactionCards(); }, 'Housing / Fuel');
+            const rep = createEditableValue(tx.group || tx.category,'date',(val)=>{ if('group' in tx) tx.group = val; else tx.category = val; __commitAndRerender(); }, 'Housing / Fuel');
             v3.replaceWith(rep.querySelector('input').parentElement); rep.querySelector('input').focus();
           });
           r3.appendChild(l3); r3.appendChild(v3);
@@ -1559,7 +1559,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
           const l1 = document.createElement('span'); l1.className='label'; l1.textContent='Amount';
           const v1 = document.createElement('span'); v1.className='value editable'; v1.textContent='$'+fmt(tx.amount);
           v1.addEventListener('click', ()=>{
-            const rep = createEditableValue(tx.amount,'number',(val)=>{ tx.amount = Number(val)||0; saveData(); renderTransactionCards(); });
+            const rep = createEditableValue(tx.amount,'number',(val)=>{ tx.amount = Number(val)||0; __commitAndRerender(); });
             v1.replaceWith(rep.querySelector('input').parentElement); rep.querySelector('input').focus();
           });
           r1.appendChild(l1); r1.appendChild(v1);
@@ -1569,7 +1569,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
           const l2 = document.createElement('span'); l2.className='label'; l2.textContent='Date';
           const v2 = document.createElement('span'); v2.className='value editable'; v2.textContent = tx.date || '—';
           v2.addEventListener('click', ()=>{
-            const rep = createEditableValue(tx.date,'date',(val)=>{ tx.date = val; saveData(); renderTransactionCards(); }, 'Nov 1, 2025');
+            const rep = createEditableValue(tx.date,'date',(val)=>{ tx.date = val; __commitAndRerender(); }, 'Nov 1, 2025');
             v2.replaceWith(rep.querySelector('input').parentElement); rep.querySelector('input').focus();
           });
           r2.appendChild(l2); r2.appendChild(v2);
@@ -1593,3 +1593,10 @@ document.addEventListener('DOMContentLoaded', ()=>{
   document.addEventListener('change', function(e){ if(e.target && e.target.id==='monthSelect'){ renderIncomeCards(); renderTransactionCards(); const dc = document.getElementById('debtCards'); if(dc) enableDebtBalanceEditing(dc); } });
   window.addEventListener('resize', function(){ renderIncomeCards(); renderTransactionCards(); });
 })();
+
+
+// v2.21.1: ensure summary & totals update immediately after inline edits
+window.__commitAndRerender = function(){
+  try{ saveData(); }catch(e){}
+  try{ if (typeof window.renderAll === 'function') window.renderAll(); }catch(e){}
+};

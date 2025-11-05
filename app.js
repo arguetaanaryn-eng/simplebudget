@@ -2894,3 +2894,71 @@ document.addEventListener('DOMContentLoaded', window.applyAppVersion);
   document.addEventListener('DOMContentLoaded', ()=>{ purgeEllipsis(); wireDebtDeletes(); bindTxnDelegation(); });
   document.addEventListener('change', (e)=>{ if(e.target && e.target.id==='monthSelect'){ purgeEllipsis(); wireDebtDeletes(); }});
 })();
+
+
+
+// v2.23.9: Strict debt header sanitization (remove '...' and non-canonical trash)
+(function(){
+  function cur(){ const sel=document.getElementById('monthSelect'); return sel&&sel.value&&data.months?data.months[sel.value]:null; }
+
+  function sanitizeDebtHeader(header, keepId){
+    // Remove any button whose text is "..." or "…"
+    header.querySelectorAll('button').forEach(btn=>{
+      const t=(btn.textContent||'').trim();
+      if(t==='...' || t==='…') btn.remove();
+    });
+    // Remove any extra trash buttons not matching our canonical id
+    header.querySelectorAll('button').forEach(btn=>{
+      if(btn.id===keepId) return;
+      const hasTrash = (btn.innerHTML||'').indexOf('ic-trash')>=0 || btn.title?.toLowerCase().includes('delete');
+      if(hasTrash) btn.remove();
+    });
+    // Remove any leftover kebab/ellipsis wrappers
+    header.querySelectorAll('.kebab,.ellipsis,.more-btn').forEach(el=>el.remove());
+  }
+
+  function wireDebtDeletesStrict(){
+    const m = cur(); if(!m) return;
+    const wrap = document.getElementById('debtCards'); if(!wrap) return;
+    const cards = wrap.querySelectorAll('.card-item');
+    cards.forEach((c, idx)=>{
+      const id = `debt-del-${idx}`;
+      let header = c.querySelector('.title-row') || c.querySelector('.card-head') || null;
+      if(!header){ header=document.createElement('div'); header.className='title-row'; c.prepend(header); }
+      // Sanitize header BEFORE adding our button
+      sanitizeDebtHeader(header, id);
+      // Ensure only one canonical delete exists
+      let btn = header.querySelector('#'+id);
+      if(!btn){
+        btn = document.createElement('button');
+        btn.type = 'button';
+        btn.id = id;
+        btn.className = 'icon-btn danger debt-del-btn';
+        btn.title = 'Delete Debt';
+        btn.innerHTML = '<span class="ic-trash" style="width:16px;height:16px;"></span>';
+        btn.addEventListener('click', ()=>{
+          if(!m.debts || !m.debts[idx]) return;
+          const name = m.debts[idx].name || 'this debt';
+          if(confirm(`Delete "${name}"?`)){
+            m.debts.splice(idx,1);
+            try{ saveData(); }catch(e){}
+            try{ if(window.renderAll) window.renderAll(); }catch(e){}
+          }
+        });
+        header.appendChild(btn);
+      }
+      // Final sanitize in case template injected another control later
+      setTimeout(()=>sanitizeDebtHeader(header, id),0);
+    });
+  }
+
+  // Hook into render
+  const _old = window.renderAll;
+  window.renderAll = function(){
+    if(typeof _old==='function') _old();
+    wireDebtDeletesStrict();
+    if(window.__renderSummary) window.__renderSummary();
+  };
+  document.addEventListener('DOMContentLoaded', wireDebtDeletesStrict);
+  document.addEventListener('change', (e)=>{ if(e.target && e.target.id==='monthSelect') wireDebtDeletesStrict(); });
+})();

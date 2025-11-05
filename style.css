@@ -765,3 +765,9 @@ button, .icon-btn {
 .title-row .left{ display:flex; align-items:center; gap:10px; }
 .title-row .right{ display:flex; align-items:center; gap:8px; }
 .title-row .debt-del-btn + .debt-del-btn{ display:none !important; } /* kill duplicates if any slip in */
+
+
+/* v2.23.9: debt header cleanup */
+#debtCards .title-row button.__sb-unknown, 
+#debtCards .title-row .ellipsis, 
+#debtCards .title-row .kebab { display:none !important; }

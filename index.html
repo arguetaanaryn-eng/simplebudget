@@ -1,0 +1,217 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Simple Budget v2.16.1 (Offline)</title>
+  <link rel="stylesheet" href="style.css">
+
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="icons/icon-180.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="theme-color" content="#007ACC">
+
+</head>
+<body>
+  <header class="app-header">
+    <div class="brand">
+      <div class="logo">SB</div>
+      <h1>Simple Budget</h1><span class="tag">v2.16.1</span>
+    </div>
+    <div class="actions">
+      <button id="newMonthBtn" class="btn" title="Creates a new month by copying the last month (dates & planned).">New Month (copy prev)</button>
+      <button id="copyPrevBtn" class="btn" title="Copies the previous month's data into the currently selected month.">Copy Prev → Current</button>
+      <button id="newTemplateBtn" class="btn btn-ghost" title="Create a new blank month with standard categories (no dates)">New Template</button>
+      <button id="exportBtn" class="btn btn-ghost">Export</button>
+      <label class="import-label btn btn-ghost">
+        Import <input type="file" id="importFile" accept=".json" />
+      </label>
+    </div>
+  </header>
+
+  <section class="toolbar">
+    <div class="left">
+      <label class="field">
+        <span>Month</span>
+        <select id="monthSelect" class="input"></select>
+      </label>
+      <label class="field">
+        <span>Rename</span>
+        <input type="text" id="monthNameInput" class="input" placeholder="e.g., December 2025">
+      </label>
+      <button id="renameMonthBtn" class="btn">Apply</button>
+      <button id="deleteMonthBtn" class="btn btn-danger">Delete</button>
+    </div>
+    <div class="right">
+      <label class="switch">
+        <input type="checkbox" id="toggleTx">
+        <span>Use transactions</span>
+      </label>
+      <label class="switch">
+        <input type="checkbox" id="toggleCompact">
+        <span>Compact layout</span>
+      </label>
+    </div>
+  </section>
+
+  <section class="summary sticky">
+    <div class="card metric"><div class="label">Planned Income</div><div class="value" id="sumPlannedIncome">0</div></div>
+    <div class="card metric"><div class="label">Planned Expenses</div><div class="value" id="sumPlannedExpenses">0</div></div>
+    <div class="card metric"><div class="label">Planned Debt</div><div class="value" id="sumPlannedDebt">0</div></div>
+    <div class="card metric total"><div class="label">Planned Net</div><div class="value" id="sumPlannedNet">0</div></div>
+    <div class="spacer"></div>
+    <div class="card metric"><div class="label">Actual Income</div><div class="value" id="sumActualIncome">0</div></div>
+    <div class="card metric"><div class="label">Actual Expenses</div><div class="value" id="sumActualExpenses">0</div></div>
+    <div class="card metric"><div class="label">Actual Debt</div><div class="value" id="sumActualDebt">0</div></div>
+    <div class="card metric total"><div class="label">Actual Net</div><div class="value" id="sumActualNet">0</div></div>
+  </section>
+
+  <main>
+    <section class="grid">
+      <div class="panel">
+        <div class="panel-head">
+          <h2>Income</h2>
+        </div>
+        <div class="table-wrap">
+          <table id="incomeTable" class="table">
+            <thead><tr><th>Name</th><th>Planned</th><th>Actual</th><th></th></tr></thead>
+            <tbody></tbody>
+            <tfoot><tr class="totals"><td>Totals</td><td id="totIncomePlanned">0</td><td id="totIncomeActual">0</td><td></td></tr></tfoot>
+          </table>
+        </div>
+        <div class="row-add">
+          <input id="newIncomeName" class="input" placeholder="New income">
+          <input id="newIncomePlanned" class="input" type="number" step="0.01" placeholder="Planned">
+          <button id="addIncomeBtn" class="btn">Add</button>
+        </div>
+
+        <div id="incomeTxSection" class="tx" style="display:none;">
+          <h3>Income Transactions</h3>
+          <div class="row-add responsive">
+            <input type="date" id="incDate" class="input">
+            <input type="text" id="incDesc" class="input" placeholder="Description">
+            <input type="number" step="0.01" id="incAmount" class="input" placeholder="Amount">
+            <select id="incSource" class="input"></select>
+            <button id="addIncTxBtn" class="btn">Add</button>
+          </div>
+          <div class="table-wrap">
+            <table id="incTxTable" class="table">
+              <thead><tr><th>Date</th><th>Description</th><th>Source</th><th>Amount</th><th></th></tr></thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head">
+          <h2>Expenses</h2>
+          <div class="muted">Headers & subcategories with subtotals</div>
+        </div>
+        <div class="row-add">
+          <input id="newGroupName" class="input" placeholder="New header (e.g., Housing)">
+          <button id="addGroupBtn" class="btn">Add Header</button>
+        </div>
+
+        <div id="expenseGroups" class="group-list"></div>
+
+        <div class="table-wrap">
+          <table class="table grand-total">
+            <tfoot>
+              <tr class="totals"><td>All Expenses Totals</td><td id="totAllExpPlanned">0</td><td id="totAllExpActual">0</td><td id="totAllExpRemaining">0</td></tr>
+            </tfoot>
+          </table>
+        </div>
+
+        <div id="txSection" class="tx" style="display:none;">
+          <h3>Expense Transactions</h3>
+          <div class="row-add responsive">
+            <input type="date" id="txDate" class="input">
+            <input type="text" id="txDesc" class="input" placeholder="Description">
+            <input type="number" step="0.01" id="txAmount" class="input" placeholder="Amount">
+            <select id="txGroup" class="input"></select>
+            <select id="txItem" class="input"></select>
+            <button id="addTxBtn" class="btn">Add</button>
+          </div>
+          <div class="table-wrap">
+            <table id="txTable" class="table">
+              <thead><tr><th>Date</th><th>Description</th><th>Header</th><th>Subcategory</th><th>Amount</th><th></th></tr></thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-head">
+          <h2>Debts</h2>
+        </div>
+        <div class="table-wrap">
+          <table id="debtTable" class="table">
+            <thead><tr><th>Debt</th><th>Balance</th><th>APR %</th><th>Auto</th><th>Interest</th><th>Planned</th><th>Actual</th><th>Paid On</th><th>End Bal</th><th></th></tr></thead>
+            <tbody></tbody>
+            <tfoot><tr class="totals"><td>Totals</td><td id="totDebtBalStart">0</td><td></td><td></td><td id="totDebtInterest">0</td><td id="totDebtPlanned">0</td><td id="totDebtActual">0</td><td></td><td id="totDebtBalEnd">0</td><td></td></tr></tfoot>
+          </table>
+        </div>
+        <div class="row-add">
+          <input id="newDebtName" class="input" placeholder="New debt (e.g., Car Loan)">
+          <input id="newDebtBal" class="input" type="number" step="0.01" placeholder="Starting balance">
+          <input id="newDebtAPR" class="input" type="number" step="0.01" placeholder="APR %">
+          <input id="newDebtPlanned" class="input" type="number" step="0.01" placeholder="Planned payment">
+          <input id="newDebtPaidOn" class="input" type="date" placeholder="Paid On">
+          <button id="addDebtBtn" class="btn">Add</button>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="app-footer">
+    <small>Offline, private, and portable. Export backups regularly.</small>
+  </footer>
+
+  <script src="app.js?v=2161"></script>
+
+  <!-- v2.15 New Month Modal -->
+  <div id="newMonthModal" class="modal" style="display:none;">
+    <div class="modal-backdrop"></div>
+    <div class="modal-card">
+      <div class="modal-head">
+        <h3>Create New Month</h3>
+      </div>
+      <div class="modal-body">
+        <label class="field" style="width:100%;">
+          <span>New month name (e.g., December 2025)</span>
+          <input type="text" id="newMonthNameField" class="input" placeholder="e.g., December 2025">
+        </label>
+        <label class="field" style="width:100%; margin-top:10px;">
+          <span>Source month to copy from (roll dates +1 month from this)</span>
+          <select id="sourceMonthSelect" class="input"></select>
+        </label>
+      </div>
+      
+        <label class="switch" style="margin-top:12px;">
+          <input type="checkbox" id="rememberSourceChk">
+          <span>Remember last selected source month</span>
+        </label>
+
+      <div class="modal-foot">
+        <button id="newMonthCreateBtn" class="btn">Create</button>
+        <button id="newMonthCancelBtn" class="btn btn-ghost">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', function() {
+    navigator.serviceWorker.register('sw.js').catch(function(err){
+      console.log('SW registration failed:', err);
+    });
+  });
+}
+</script>
+
+</body>
+</html>

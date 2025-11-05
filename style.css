@@ -233,3 +233,29 @@ body.compact .metric .label, body.auto-compact .metric .label { font-size: 11px;
 }
 
 .table-wrap{ overflow-x: auto; -webkit-overflow-scrolling: touch; }
+
+
+/* v2.18 Mobile card layout */
+.cards-wrap{ display:none; gap:10px; }
+.card-item{
+  background:#fff; border:1px solid var(--line); border-radius:14px;
+  box-shadow: 0 6px 16px var(--shadow); padding:12px; display:grid; gap:8px;
+}
+.card-item .title{ font-weight:600; font-size:16px; }
+.card-row{ display:flex; justify-content:space-between; gap:8px; font-size:14px; }
+.card-row .label{ color:#5b6470; }
+.card-row .value{ font-variant-numeric: tabular-nums; }
+
+/* Group card */
+.card-group{ background: var(--card); border:1px solid var(--line); border-radius:14px; padding:10px; display:grid; gap:10px; }
+.card-group .group-title{ font-size:15px; font-weight:700; }
+
+@media (max-width: 700px){
+  /* Hide tables and show cards on mobile */
+  #expenseGroups table, #expenseGroups .table, #expenseGroups .table-wrap{ display:none !important; }
+  #debtTable{ display:none !important; }
+  .cards-wrap{ display:grid; }
+  /* Tighten header / inputs */
+  .app-header .actions .btn, .app-header .actions .import-label{ padding:6px 10px; font-size:13px; }
+  .summary{ grid-template-columns: 1fr 1fr; }
+}

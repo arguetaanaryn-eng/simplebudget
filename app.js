@@ -1103,3 +1103,90 @@ document.addEventListener("DOMContentLoaded", function(){
     tweakNumberInputs();
   });
 })();
+
+
+// v2.18: Mobile card renderers for Expenses & Debts
+(function(){
+  function fmt(n){ if(n===undefined||n===null||n==='') return '0.00'; var v=Number(n)||0; return v.toLocaleString(undefined,{minimumFractionDigits:2, maximumFractionDigits:2}); }
+  function ensureCurrentMonth(){
+    try{
+      const sel = document.getElementById('monthSelect');
+      return sel && sel.value && data.months ? data.months[sel.value] : null;
+    }catch(e){ return null; }
+  }
+  function renderExpenseCards(){
+    const cont = document.getElementById('expenseCards');
+    if(!cont) return;
+    cont.innerHTML = '';
+    const m = ensureCurrentMonth();
+    if(!m || !Array.isArray(m.expenseGroups)) return;
+    m.expenseGroups.forEach(g=>{
+      const group = document.createElement('div');
+      group.className = 'card-group';
+      const gt = document.createElement('div');
+      gt.className = 'group-title'; gt.textContent = g.group || 'Group';
+      group.appendChild(gt);
+      (g.items||[]).forEach(it=>{
+        const c = document.createElement('div');
+        c.className = 'card-item';
+        const title = document.createElement('div');
+        title.className = 'title';
+        title.textContent = it.name || 'Item';
+        c.appendChild(title);
+
+        const row1 = document.createElement('div'); row1.className='card-row';
+        row1.innerHTML = '<span class="label">Planned</span><span class="value">$'+fmt(it.planned)+'</span>';
+        const row2 = document.createElement('div'); row2.className='card-row';
+        row2.innerHTML = '<span class="label">Actual</span><span class="value">$'+fmt(it.actual)+'</span>';
+        const row3 = document.createElement('div'); row3.className='card-row';
+        row3.innerHTML = '<span class="label">Date</span><span class="value">'+(it.date||'—')+'</span>';
+
+        c.appendChild(row1); c.appendChild(row2); c.appendChild(row3);
+        group.appendChild(c);
+      });
+      cont.appendChild(group);
+    });
+  }
+  function renderDebtCards(){
+    const cont = document.getElementById('debtCards');
+    if(!cont) return;
+    cont.innerHTML = '';
+    const m = ensureCurrentMonth();
+    if(!m || !Array.isArray(m.debts)) return;
+    (m.debts||[]).forEach(d=>{
+      const c = document.createElement('div');
+      c.className = 'card-item';
+      const title = document.createElement('div');
+      title.className = 'title';
+      title.textContent = d.name || 'Debt';
+      c.appendChild(title);
+
+      const rowBal = document.createElement('div'); rowBal.className='card-row';
+      rowBal.innerHTML = '<span class="label">Balance</span><span class="value">$'+fmt(d.balance)+'</span>';
+      const rowPl = document.createElement('div'); rowPl.className='card-row';
+      rowPl.innerHTML = '<span class="label">Planned</span><span class="value">$'+fmt(d.plannedPayment)+'</span>';
+      const rowAc = document.createElement('div'); rowAc.className='card-row';
+      rowAc.innerHTML = '<span class="label">Actual</span><span class="value">$'+fmt(d.actualPayment)+'</span>';
+      const rowDt = document.createElement('div'); rowDt.className='card-row';
+      rowDt.innerHTML = '<span class="label">Paid On</span><span class="value">'+(d.paidOn||'—')+'</span>';
+
+      c.appendChild(rowBal); c.appendChild(rowPl); c.appendChild(rowAc); c.appendChild(rowDt);
+      cont.appendChild(c);
+    });
+  }
+  function renderMobileCards(){ renderExpenseCards(); renderDebtCards(); }
+  // Hook into existing renderAll
+  (function(){
+    const old = window.renderAll;
+    window.renderAll = function(){ if(typeof old==='function') old(); renderMobileCards(); };
+  })();
+  // Also render on load and on month change
+  document.addEventListener('DOMContentLoaded', renderMobileCards);
+  document.addEventListener('change', function(e){
+    if(e.target && e.target.id==='monthSelect'){ renderMobileCards(); }
+  });
+  window.addEventListener('resize', function(){ 
+    // re-render because visibility toggles when crossing breakpoint
+    renderMobileCards();
+  });
+})();

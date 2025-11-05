@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Simple Budget v2.17.2 (Mobile PWA)</title>
+  <title>Simple Budget v2.18 (Mobile Cards)</title>
   <link rel="stylesheet" href="style.css">
 
   <link rel="manifest" href="manifest.json">
@@ -17,7 +17,7 @@
   <header class="app-header">
     <div class="brand">
       <div class="logo">SB</div>
-      <h1>Simple Budget</h1><span class="tag">v2.17.2</span>
+      <h1>Simple Budget</h1><span class="tag">v2.18</span>
     </div>
     <div class="actions">
       <button id="newMonthBtn" class="btn" title="Creates a new month by copying the last month (dates & planned).">New Month (copy prev)</button>
@@ -115,7 +115,8 @@
           <button id="addGroupBtn" class="btn">Add Header</button>
         </div>
 
-        <div id="expenseGroups" class="group-list"></div>
+        <div id="expenseCards" class="cards-wrap" aria-hidden="true"></div>
+      <div id="expenseGroups" class="group-list"></div>
 
         <div class="table-wrap">
           <table class="table grand-total">
@@ -149,7 +150,8 @@
           <h2 id="sec-debts">Debts</h2>
         </div>
         <div class="table-wrap">
-          <table id="debtTable" class="table">
+          <div id="debtCards" class="cards-wrap" aria-hidden="true"></div>
+        <table id="debtTable" class="table">
             <thead><tr><th>Debt</th><th>Balance</th><th>APR %</th><th>Auto</th><th>Interest</th><th>Planned</th><th>Actual</th><th>Paid On</th><th>End Bal</th><th></th></tr></thead>
             <tbody></tbody>
             <tfoot><tr class="totals"><td>Totals</td><td id="totDebtBalStart">0</td><td></td><td></td><td id="totDebtInterest">0</td><td id="totDebtPlanned">0</td><td id="totDebtActual">0</td><td></td><td id="totDebtBalEnd">0</td><td></td></tr></tfoot>
